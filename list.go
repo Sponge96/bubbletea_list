@@ -289,3 +289,7 @@ func (m *Model) sortSelection() {
 		m.selectionStart, m.selectionEnd = m.selectionEnd, m.selectionStart
 	}
 }
+
+func (m *Model) ItemLen() int {
+	return len(m.items)
+}
