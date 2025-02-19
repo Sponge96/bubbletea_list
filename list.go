@@ -263,7 +263,7 @@ func (m *Model) GetSelection() []int64 {
 	}
 
 	m.sortSelection()
-	for _, item := range m.Items[m.selectionStart:m.selectionEnd] {
+	for _, item := range m.Items[m.selectionStart : m.selectionEnd+1] {
 		selection = append(selection, item.GetID())
 	}
 	return selection
