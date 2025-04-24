@@ -28,11 +28,11 @@ type Model struct {
 }
 
 type Item interface {
-	GetID() int64
 	View() string
-	SetSize(w, h int)
-	ToggleExpand()
 	Update(tea.Msg) tea.Cmd
+	SetSize(w, h int)
+	GetID() int64
+	ToggleExpand()
 }
 
 func New(items []Item, orientation Orientation, w, h int, itemStyle lipgloss.Style, activeItemStyle lipgloss.Style) *Model {
@@ -174,7 +174,21 @@ func (m *Model) horizontalView() string {
 		}
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, sections...)
+	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
+	scroll := m.dotsView()
+	return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(scroll)/2).Render(scroll))
+}
+
+func (m *Model) dotsView() string {
+	var s string
+	for i := 0; i < m.ItemLen(); i++ {
+		if i == m.ActiveIndex() {
+			s += "!"
+			continue
+		}
+		s += "."
+	}
+	return s
 }
 
 // Movement
