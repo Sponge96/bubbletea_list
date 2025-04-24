@@ -69,9 +69,8 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (m *Model) View() string {
-	// Nothing to display
 	if len(m.Items) == 0 {
-		return ""
+		return "" // Nothing to display
 	}
 
 	if m.orientation == Horizontal {
@@ -175,18 +174,18 @@ func (m *Model) horizontalView() string {
 	}
 
 	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
-	scroll := m.dotsView()
+	scroll := m.scrollView()
 	return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(scroll)/2).Render(scroll))
 }
 
-func (m *Model) dotsView() string {
+func (m *Model) scrollView() string {
 	var s string
 	for i := 0; i < m.ItemLen(); i++ {
 		if i == m.ActiveIndex() {
-			s += "!"
+			s += "●"
 			continue
 		}
-		s += "."
+		s += "○"
 	}
 	return s
 }
