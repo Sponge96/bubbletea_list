@@ -184,7 +184,7 @@ func (m *Model) horizontalView() string {
 
 func (m *Model) scrollView() string {
 	var s string
-	for i := 0; i < m.ItemLen(); i++ {
+	for i := 0; i < m.ItemsLen(); i++ {
 		if i == m.ActiveIndex() {
 			s += "●"
 			continue
@@ -250,6 +250,7 @@ func (m *Model) GotoEndItem() {
 
 func (m *Model) ClearItems() {
 	m.Items = nil
+	m.activeIndex = -1
 }
 
 func (m *Model) InsertItem(item Item) {
@@ -304,9 +305,7 @@ func (m *Model) DeleteSelection() {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return
 	}
-	// if selection mode active deletes selection otherwise delete activeID
 	if m.selectionMode {
-		// swap start/end if start >
 		m.sortSelection()
 		m.Items = slices.Delete(m.Items, m.selectionStart, m.selectionEnd+1)
 	} else {
@@ -321,7 +320,7 @@ func (m *Model) sortSelection() {
 	}
 }
 
-func (m *Model) ItemLen() int {
+func (m *Model) ItemsLen() int {
 	return len(m.Items)
 }
 
