@@ -85,6 +85,10 @@ func (m *Model) View() string {
 }
 
 func (m *Model) renderActiveItem() string {
+	if !m.hasValidActiveIndex() {
+		return ""
+	}
+
 	m.Items[m.activeIndex].SetSize(m.width, m.height)
 	if m.selectionMode {
 		return m.activeItemStyle.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
@@ -223,6 +227,10 @@ func (m *Model) DecrementItem(step int) {
 }
 
 func (m *Model) GotoStartItem() {
+	if len(m.Items) == 0 {
+		m.activeIndex = -1
+		return
+	}
 	m.activeIndex = 0
 	if m.selectionMode {
 		m.selectionEnd = 0
@@ -230,6 +238,10 @@ func (m *Model) GotoStartItem() {
 }
 
 func (m *Model) GotoEndItem() {
+	if len(m.Items) == 0 {
+		m.activeIndex = -1
+		return
+	}
 	m.activeIndex = len(m.Items) - 1
 	if m.selectionMode {
 		m.selectionEnd = m.activeIndex
@@ -242,6 +254,9 @@ func (m *Model) ClearItems() {
 
 func (m *Model) InsertItem(item Item) {
 	m.Items = slices.Insert(m.Items, 0, item)
+	if m.activeIndex < 0 {
+		m.activeIndex = 0
+	}
 }
 
 func (m *Model) EnabledSelectionMode() {
@@ -261,11 +276,14 @@ func (m *Model) SetSize(w, h int) {
 }
 
 func (m *Model) ActiveItemID() int64 {
+	if !m.hasValidActiveIndex() {
+		return -1
+	}
 	return m.Items[m.activeIndex].GetID()
 }
 
 func (m *Model) GetSelection() []int64 {
-	if len(m.Items) == 0 {
+	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return nil
 	}
 
@@ -283,7 +301,7 @@ func (m *Model) GetSelection() []int64 {
 }
 
 func (m *Model) DeleteSelection() {
-	if len(m.Items) == 0 {
+	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return
 	}
 	// if selection mode active deletes selection otherwise delete activeID
@@ -309,4 +327,8 @@ func (m *Model) ItemLen() int {
 
 func (m *Model) ActiveIndex() int {
 	return m.activeIndex
+}
+
+func (m *Model) hasValidActiveIndex() bool {
+	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
 }
