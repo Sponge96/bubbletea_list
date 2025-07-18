@@ -70,14 +70,13 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 
 func (m *Model) View() string {
 	if len(m.Items) == 0 {
-		return "" // Nothing to display
+		return ""
 	}
 
-	if m.orientation == Horizontal {
+	switch m.orientation {
+	case Horizontal:
 		return m.horizontalView()
-	}
-
-	if m.orientation == Vertical {
+	case Vertical:
 		return m.verticalView()
 	}
 
