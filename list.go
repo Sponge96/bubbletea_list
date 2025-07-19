@@ -330,3 +330,18 @@ func (m *Model) ActiveIndex() int {
 func (m *Model) hasValidActiveIndex() bool {
 	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
 }
+
+func (m *Model) DeleteItemByID(id int64) {
+	for i, item := range m.Items {
+		if item.GetID() == id {
+			m.Items = slices.Delete(m.Items, i, i+1)
+			if m.activeIndex >= len(m.Items) {
+				m.activeIndex = len(m.Items) - 1
+			}
+			if m.activeIndex < 0 {
+				m.activeIndex = 0
+			}
+			break
+		}
+	}
+}
