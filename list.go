@@ -187,9 +187,9 @@ func (m *Model) scrollView() string {
 	for i := 0; i < m.ItemsLen(); i++ {
 		if i == m.ActiveIndex() {
 			s += "●"
-			continue
+		} else {
+			s += "○"
 		}
-		s += "○"
 	}
 	return s
 }
@@ -254,13 +254,24 @@ func (m *Model) ClearItems() {
 }
 
 func (m *Model) InsertItem(item Item, index int) {
+	// TODO: call the item.UpdateOrderIndex after rebuilding the list
+	// might be best to just loop all items in the list after insertion and tell them new index shouldn't be super heavy as only updating single attribute
+	// and project and tasks probably won't implement item.UpdateOrderIndex so we're talking like 10items that actually do anything
+	// just need to validate the insertion index then loop items and call updateorderindex on each with the enumerated loop
 	if index > len(m.Items) {
 		index = len(m.Items)
+	}
+	if index < len(m.Items) {
+		index = 0
 	}
 
 	m.Items = slices.Insert(m.Items, index, item)
 	if m.activeIndex < 0 {
 		m.activeIndex = 0
+	}
+
+	for i, item := range m.Items {
+		item.UpdateOrderIndex(i)
 	}
 }
 
