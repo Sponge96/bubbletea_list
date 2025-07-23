@@ -252,8 +252,12 @@ func (m *Model) ClearItems() {
 	m.activeIndex = -1
 }
 
-func (m *Model) InsertItem(item Item) {
-	m.Items = slices.Insert(m.Items, 0, item)
+func (m *Model) InsertItem(item Item, index int) {
+	if index > len(m.Items) {
+		index = len(m.Items)
+	}
+
+	m.Items = slices.Insert(m.Items, index, item)
 	if m.activeIndex < 0 {
 		m.activeIndex = 0
 	}
