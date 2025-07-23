@@ -33,6 +33,7 @@ type Item interface {
 	SetSize(w, h int)
 	GetID() int64
 	ToggleExpand()
+	UpdateOrderIndex(int)
 }
 
 func New(items []Item, orientation Orientation, w, h int, itemStyle lipgloss.Style, activeItemStyle lipgloss.Style) *Model {
