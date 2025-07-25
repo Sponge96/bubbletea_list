@@ -353,3 +353,7 @@ func (m *Model) DeleteItemByID(id int64) {
 		}
 	}
 }
+
+func (m *Model) ActiveItem() Item {
+	return m.Items[m.activeIndex]
+}
