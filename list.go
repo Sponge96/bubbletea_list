@@ -261,10 +261,7 @@ func (m *Model) InsertItem(item Item, index int) {
 	}
 
 	m.Items = slices.Insert(m.Items, index, item)
-
-	if m.activeIndex < 0 {
-		m.activeIndex = 0
-	}
+	m.activeIndex = index
 }
 
 func (m *Model) EnabledSelectionMode() {
@@ -355,5 +352,8 @@ func (m *Model) DeleteItemByID(id int64) {
 }
 
 func (m *Model) ActiveItem() Item {
-	return m.Items[m.activeIndex]
+	if m.hasValidActiveIndex() {
+		return m.Items[m.activeIndex]
+	}
+	return nil
 }
