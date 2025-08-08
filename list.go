@@ -50,13 +50,10 @@ func New(items []Item, orientation Orientation, w, h int, itemStyle lipgloss.Sty
 		selectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("22")),
 	}
 }
-
 func (m *Model) Init() tea.Cmd {
 	return nil
 }
-
 func (m *Model) Update(msg tea.Msg) tea.Cmd {
-	// simply propergates the update down to items
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 	for _, item := range m.Items {
@@ -67,7 +64,6 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 	}
 	return tea.Batch(cmds...)
 }
-
 func (m *Model) View() string {
 	if len(m.Items) == 0 {
 		return ""
@@ -82,7 +78,6 @@ func (m *Model) View() string {
 
 	return ""
 }
-
 func (m *Model) renderActiveItem() string {
 	if !m.hasValidActiveIndex() {
 		return ""
@@ -94,7 +89,6 @@ func (m *Model) renderActiveItem() string {
 	}
 	return m.activeItemStyle.Render(m.Items[m.activeIndex].View())
 }
-
 func (m *Model) renderItem(i int) string {
 	m.Items[i].SetSize(m.width, m.height)
 	if m.selectionMode && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
@@ -102,7 +96,6 @@ func (m *Model) renderItem(i int) string {
 	}
 	return m.itemStyle.Render(m.Items[i].View())
 }
-
 func (m *Model) verticalView() string {
 	var sections []string
 	var item string
@@ -140,7 +133,6 @@ func (m *Model) verticalView() string {
 
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
 }
-
 func (m *Model) horizontalView() string {
 	var sections []string
 	var item string
@@ -180,7 +172,6 @@ func (m *Model) horizontalView() string {
 	scroll := m.scrollView()
 	return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(scroll)/2).Render(scroll))
 }
-
 func (m *Model) scrollView() string {
 	var s string
 	for i := 0; i < m.ItemsLen(); i++ {
@@ -209,7 +200,6 @@ func (m *Model) IncrementItem(step int) {
 		m.selectionEnd = m.activeIndex
 	}
 }
-
 func (m *Model) DecrementItem(step int) {
 	if len(m.Items) == 0 {
 		return
@@ -224,7 +214,6 @@ func (m *Model) DecrementItem(step int) {
 		m.selectionEnd = m.activeIndex
 	}
 }
-
 func (m *Model) GotoStartItem() {
 	if len(m.Items) == 0 {
 		m.activeIndex = -1
@@ -235,7 +224,6 @@ func (m *Model) GotoStartItem() {
 		m.selectionEnd = 0
 	}
 }
-
 func (m *Model) GotoEndItem() {
 	if len(m.Items) == 0 {
 		m.activeIndex = -1
@@ -246,12 +234,10 @@ func (m *Model) GotoEndItem() {
 		m.selectionEnd = m.activeIndex
 	}
 }
-
 func (m *Model) ClearItems() {
 	m.Items = nil
 	m.activeIndex = -1
 }
-
 func (m *Model) InsertItem(item Item, index int) {
 	if index > len(m.Items) {
 		index = len(m.Items)
@@ -263,30 +249,25 @@ func (m *Model) InsertItem(item Item, index int) {
 	m.Items = slices.Insert(m.Items, index, item)
 	m.activeIndex = index
 }
-
 func (m *Model) EnabledSelectionMode() {
 	m.selectionStart = m.activeIndex
 	m.selectionEnd = m.activeIndex
 	m.selectionMode = true
 }
-
 func (m *Model) DisableSelectionMode() {
 	m.selectionStart = 0
 	m.selectionEnd = 0
 	m.selectionMode = false
 }
-
 func (m *Model) SetSize(w, h int) {
 	m.width, m.height = w, h
 }
-
 func (m *Model) ActiveItemID() int64 {
 	if !m.hasValidActiveIndex() {
 		return -1
 	}
 	return m.Items[m.activeIndex].GetID()
 }
-
 func (m *Model) GetSelection() []int64 {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return nil
@@ -304,7 +285,6 @@ func (m *Model) GetSelection() []int64 {
 	}
 	return selection
 }
-
 func (m *Model) DeleteSelection() {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return
@@ -317,25 +297,20 @@ func (m *Model) DeleteSelection() {
 	}
 	m.activeIndex = 0
 }
-
 func (m *Model) sortSelection() {
 	if m.selectionStart > m.selectionEnd {
 		m.selectionStart, m.selectionEnd = m.selectionEnd, m.selectionStart
 	}
 }
-
 func (m *Model) ItemsLen() int {
 	return len(m.Items)
 }
-
 func (m *Model) ActiveIndex() int {
 	return m.activeIndex
 }
-
 func (m *Model) hasValidActiveIndex() bool {
 	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
 }
-
 func (m *Model) DeleteItemByID(id int64) {
 	for i, item := range m.Items {
 		if item.GetID() == id {
@@ -350,7 +325,6 @@ func (m *Model) DeleteItemByID(id int64) {
 		}
 	}
 }
-
 func (m *Model) ActiveItem() Item {
 	if m.hasValidActiveIndex() {
 		return m.Items[m.activeIndex]
