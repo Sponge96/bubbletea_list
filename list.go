@@ -32,7 +32,6 @@ type Item interface {
 	Update(tea.Msg) tea.Cmd
 	SetSize(w, h int)
 	GetID() int64
-	ToggleExpand()
 }
 
 func New(items []Item, orientation Orientation, w, h int, itemStyle lipgloss.Style, activeItemStyle lipgloss.Style) *Model {
