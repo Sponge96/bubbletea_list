@@ -41,10 +41,10 @@ func New(items []Item, orientation Orientation, w, h int, itemStyle lipgloss.Sty
 		orientation:       orientation,
 		width:             w,
 		height:            h,
-		activeIndex:       0,
+		activeIndex:       -1,
 		selectionMode:     false,
-		selectionStart:    0,
-		selectionEnd:      0,
+		selectionStart:    -1,
+		selectionEnd:      -1,
 		itemStyle:         itemStyle,
 		activeItemStyle:   activeItemStyle,
 		selectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("22")),
@@ -255,8 +255,8 @@ func (m *Model) EnabledSelectionMode() {
 	m.selectionMode = true
 }
 func (m *Model) DisableSelectionMode() {
-	m.selectionStart = 0
-	m.selectionEnd = 0
+	m.selectionStart = -1
+	m.selectionEnd = -1
 	m.selectionMode = false
 }
 func (m *Model) SetSize(w, h int) {
@@ -291,7 +291,10 @@ func (m *Model) DeleteSelection() {
 	}
 	if m.selectionMode {
 		m.sortSelection()
-		m.Items = slices.Delete(m.Items, m.selectionStart, m.selectionEnd+1)
+		if m.selectionStart == m.selectionEnd {
+			m.selectionEnd += 1
+		}
+		m.Items = slices.Delete(m.Items, m.selectionStart, m.selectionEnd)
 	} else {
 		m.Items = slices.Delete(m.Items, m.activeIndex, m.activeIndex+1)
 	}
@@ -311,6 +314,7 @@ func (m *Model) ActiveIndex() int {
 func (m *Model) hasValidActiveIndex() bool {
 	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
 }
+
 func (m *Model) DeleteItemByID(id int64) {
 	for i, item := range m.Items {
 		if item.GetID() == id {
