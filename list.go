@@ -73,9 +73,9 @@ func (m *Model) View() string {
 		return m.horizontalView()
 	case Vertical:
 		return m.verticalView()
+	default:
+		return ""
 	}
-
-	return ""
 }
 func (m *Model) renderActiveItem() string {
 	if !m.hasValidActiveIndex() {
@@ -313,7 +313,6 @@ func (m *Model) ActiveIndex() int {
 func (m *Model) hasValidActiveIndex() bool {
 	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
 }
-
 func (m *Model) DeleteItemByID(id int64) {
 	for i, item := range m.Items {
 		if item.GetID() == id {
@@ -329,8 +328,8 @@ func (m *Model) DeleteItemByID(id int64) {
 	}
 }
 func (m *Model) ActiveItem() Item {
-	if m.hasValidActiveIndex() {
-		return m.Items[m.activeIndex]
+	if !m.hasValidActiveIndex() {
+		return nil
 	}
-	return nil
+	return m.Items[m.activeIndex]
 }
