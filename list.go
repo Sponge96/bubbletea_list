@@ -14,7 +14,7 @@ const (
 )
 
 type Model struct {
-	Items             []Item
+	Items             []ListItem
 	orientation       Orientation
 	width             int
 	height            int
@@ -27,14 +27,14 @@ type Model struct {
 	selectionEnd      int
 }
 
-type Item interface {
+type ListItem interface {
 	View() string
 	Update(tea.Msg) tea.Cmd
 	SetSize(w, h int)
 	GetID() int64
 }
 
-func New(items []Item, orientation Orientation, w, h int, itemStyle lipgloss.Style, activeItemStyle lipgloss.Style) *Model {
+func New(items []ListItem, orientation Orientation, w, h int, itemStyle lipgloss.Style, activeItemStyle lipgloss.Style) *Model {
 	return &Model{
 		Items:             items,
 		orientation:       orientation,
@@ -237,7 +237,7 @@ func (m *Model) ClearItems() {
 	m.Items = nil
 	m.activeIndex = -1
 }
-func (m *Model) InsertItem(item Item, index int) {
+func (m *Model) InsertItem(item ListItem, index int) {
 	if index > len(m.Items) {
 		index = len(m.Items)
 	}
@@ -327,7 +327,7 @@ func (m *Model) DeleteItemByID(id int64) {
 		}
 	}
 }
-func (m *Model) ActiveItem() Item {
+func (m *Model) ActiveItem() ListItem {
 	if !m.hasValidActiveIndex() {
 		return nil
 	}
