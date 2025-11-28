@@ -28,6 +28,7 @@ type Model struct {
 }
 
 type ListItem interface {
+	Init() tea.Cmd
 	View() string
 	Update(tea.Msg) tea.Cmd
 	SetSize(w, h int)
@@ -50,7 +51,11 @@ func New(items []ListItem, orientation Orientation, w, h int, itemStyle lipgloss
 	}
 }
 func (m *Model) Init() tea.Cmd {
-	return nil
+	var cmds []tea.Cmd
+	for _, item := range m.Items {
+		cmds = append(cmds, item.Init())
+	}
+	return tea.Batch(cmds...)
 }
 func (m *Model) Update(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
