@@ -360,7 +360,7 @@ func (m *Model) verticalScrollView() string {
 		if i >= indicatorPosition && i < indicatorPosition+indicatorHeight {
 			sections = append(sections, "┃")
 		} else {
-			sections = append(sections, "│")
+			sections = append(sections, "")
 		}
 	}
 
