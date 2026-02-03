@@ -25,6 +25,7 @@ type Model struct {
 	selectionMode     bool
 	selectionStart    int
 	selectionEnd      int
+	ScrollBar         bool
 }
 
 type ListItem interface {
@@ -35,7 +36,7 @@ type ListItem interface {
 	GetID() int64
 }
 
-func New(items []ListItem, orientation Orientation, w, h int, itemStyle lipgloss.Style, activeItemStyle lipgloss.Style) *Model {
+func New(items []ListItem, orientation Orientation, w, h int, itemStyle, activeItemStyle, selectionStyle lipgloss.Style) *Model {
 	return &Model{
 		Items:             items,
 		orientation:       orientation,
@@ -47,13 +48,16 @@ func New(items []ListItem, orientation Orientation, w, h int, itemStyle lipgloss
 		selectionEnd:      -1,
 		itemStyle:         itemStyle,
 		activeItemStyle:   activeItemStyle,
-		selectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("22")),
+		selectedItemStyle: selectionStyle,
 	}
 }
 func (m *Model) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	for _, item := range m.Items {
 		cmds = append(cmds, item.Init())
+	}
+	if m.hasValidActiveIndex() {
+		m.activeIndex = 0
 	}
 	return tea.Batch(cmds...)
 }
@@ -133,8 +137,12 @@ func (m *Model) verticalView() string {
 			break
 		}
 	}
+	mainView := lipgloss.JoinVertical(lipgloss.Left, sections...)
+	if m.ScrollBar {
+		return lipgloss.JoinHorizontal(lipgloss.Left, mainView, lipgloss.NewStyle().Padding(0, lipgloss.Height(mainView)/2-lipgloss.Height(m.verticalScrollView())/2).Render(m.verticalScrollView()))
+	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+	return mainView
 }
 func (m *Model) horizontalView() string {
 	var sections []string
@@ -172,19 +180,10 @@ func (m *Model) horizontalView() string {
 	}
 
 	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
-	scroll := m.scrollView()
-	return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(scroll)/2).Render(scroll))
-}
-func (m *Model) scrollView() string {
-	var s string
-	for i := 0; i < m.ItemsLen(); i++ {
-		if i == m.ActiveIndex() {
-			s += "●"
-		} else {
-			s += "○"
-		}
+	if m.ScrollBar {
+		return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(m.horizontalScrollView())/2).Render(m.horizontalScrollView()))
 	}
-	return s
+	return lipgloss.JoinVertical(lipgloss.Left, main_view)
 }
 
 func (m *Model) IncrementItem(step int) {
@@ -202,6 +201,7 @@ func (m *Model) IncrementItem(step int) {
 		m.selectionEnd = m.activeIndex
 	}
 }
+
 func (m *Model) DecrementItem(step int) {
 	if len(m.Items) == 0 {
 		return
@@ -269,20 +269,20 @@ func (m *Model) ActiveItemID() int64 {
 	}
 	return m.Items[m.activeIndex].GetID()
 }
-func (m *Model) GetSelection() []int64 {
+func (m *Model) GetSelection() []ListItem {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return nil
 	}
 
-	var selection []int64
+	var selection []ListItem
 	if !m.selectionMode {
-		selection = append(selection, m.ActiveItemID())
+		selection = append(selection, m.ActiveItem())
 		return selection
 	}
 
 	m.sortSelection()
 	for _, item := range m.Items[m.selectionStart : m.selectionEnd+1] {
-		selection = append(selection, item.GetID())
+		selection = append(selection, item)
 	}
 	return selection
 }
@@ -334,4 +334,42 @@ func (m *Model) ActiveItem() ListItem {
 		return nil
 	}
 	return m.Items[m.activeIndex]
+}
+func (m *Model) horizontalScrollView() string {
+	var s string
+	for i := 0; i < m.ItemsLen(); i++ {
+		if i == m.ActiveIndex() {
+			s += "●"
+		} else {
+			s += "○"
+		}
+	}
+	return s
+}
+
+func (m *Model) verticalScrollView() string {
+	if m.ItemsLen() == 0 {
+		return ""
+	}
+
+	indicatorHeight := max(1, m.height/m.ItemsLen())
+	indicatorPosition := (m.ActiveIndex() * m.height) / m.ItemsLen()
+
+	var sections []string
+	for i := 0; i < m.height; i++ {
+		if i >= indicatorPosition && i < indicatorPosition+indicatorHeight {
+			sections = append(sections, "┃")
+		} else {
+			sections = append(sections, "│")
+		}
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
