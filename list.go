@@ -86,7 +86,6 @@ func (m *Model) renderActiveItem() string {
 	if !m.hasValidActiveIndex() {
 		return ""
 	}
-
 	m.Items[m.activeIndex].SetSize(m.width, m.height)
 	if m.selectionMode {
 		return m.activeItemStyle.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
@@ -188,7 +187,6 @@ func (m *Model) scrollView() string {
 	return s
 }
 
-// Movement
 func (m *Model) IncrementItem(step int) {
 	len := len(m.Items)
 	if len == 0 {
@@ -249,7 +247,6 @@ func (m *Model) InsertItem(item ListItem, index int) {
 	if index < 0 {
 		index = 0
 	}
-
 	m.Items = slices.Insert(m.Items, index, item)
 	m.activeIndex = index
 }
