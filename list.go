@@ -299,7 +299,7 @@ func (m *Model) DeleteSelection() {
 	} else {
 		m.Items = slices.Delete(m.Items, m.activeIndex, m.activeIndex+1)
 	}
-	m.activeIndex = 0
+	m.activeIndex = m.activeIndex - 1
 }
 func (m *Model) sortSelection() {
 	if m.selectionStart > m.selectionEnd {
