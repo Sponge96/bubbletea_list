@@ -180,10 +180,25 @@ func (m *Model) horizontalView() string {
 	}
 
 	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
+	main_view = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(main_view)
 	if m.ScrollBar {
 		return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(m.horizontalScrollView())/2).Render(m.horizontalScrollView()))
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, main_view)
+}
+
+func (m *Model) tallestItemHeight() int {
+	tallest := 0
+	for i := range m.Items {
+		var item string
+		if i == m.activeIndex {
+			item = m.renderActiveItem()
+		} else {
+			item = m.renderItem(i)
+		}
+		tallest = max(tallest, lipgloss.Height(item))
+	}
+	return tallest
 }
 
 func (m *Model) IncrementItem(step int) {
