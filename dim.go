@@ -11,7 +11,7 @@ import (
 )
 
 // dimAmount is how far dimmed items fade towards the background, 0 to 1.
-const dimAmount = 0.55
+const dimAmount = 0.4
 
 var sgrSequence = regexp.MustCompile("\x1b\\[([0-9;]*)m")
 
