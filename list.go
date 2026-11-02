@@ -312,14 +312,36 @@ func (m *Model) DeleteSelection() {
 	}
 	if m.selectionMode {
 		m.sortSelection()
-		if m.selectionStart == m.selectionEnd {
-			m.selectionEnd += 1
-		}
-		m.Items = slices.Delete(m.Items, m.selectionStart, m.selectionEnd)
+		m.Items = slices.Delete(m.Items, m.selectionStart, m.selectionEnd+1)
+		m.activeIndex = m.selectionStart
+		m.DisableSelectionMode()
 	} else {
 		m.Items = slices.Delete(m.Items, m.activeIndex, m.activeIndex+1)
 	}
-	m.activeIndex = m.activeIndex - 1
+	m.SetActiveIndex(m.activeIndex)
+}
+
+func (m *Model) SetActiveIndex(i int) {
+	switch {
+	case len(m.Items) == 0:
+		m.activeIndex = -1
+	case i < 0:
+		m.activeIndex = 0
+	case i >= len(m.Items):
+		m.activeIndex = len(m.Items) - 1
+	default:
+		m.activeIndex = i
+	}
+}
+
+func (m *Model) SelectItemByID(id int64) bool {
+	for i, item := range m.Items {
+		if item.GetID() == id {
+			m.activeIndex = i
+			return true
+		}
+	}
+	return false
 }
 func (m *Model) sortSelection() {
 	if m.selectionStart > m.selectionEnd {
