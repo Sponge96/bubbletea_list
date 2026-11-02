@@ -1,9 +1,13 @@
 package list
 
 import (
+	"image/color"
+	"slices"
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"slices"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type Orientation int
@@ -92,19 +96,46 @@ func (m *Model) renderActiveItem() string {
 		return ""
 	}
 	m.Items[m.activeIndex].SetSize(m.width, m.height)
+	view := m.Items[m.activeIndex].View()
 	if m.selecting() {
 		active := m.activeItemStyle.Border(lipgloss.ThickBorder()).BorderForeground(m.selectedItemStyle.GetForeground())
-		return active.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
+		return active.UnsetBackground().Render(fill(view, m.selectedItemStyle.GetBackground()))
 	}
-	return m.activeItemStyle.Render(m.Items[m.activeIndex].View())
+	return m.activeItemStyle.UnsetBackground().Render(fill(view, m.activeItemStyle.GetBackground()))
 }
 func (m *Model) renderItem(i int) string {
 	m.Items[i].SetSize(m.width, m.height)
+	view := m.Items[i].View()
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
 		selected := m.itemStyle.BorderForeground(m.selectedItemStyle.GetForeground())
-		return selected.Render(m.selectedItemStyle.Render(m.Items[i].View()))
+		return selected.UnsetBackground().Render(fill(view, m.selectedItemStyle.GetBackground()))
 	}
-	return m.itemStyle.Render(m.Items[i].View())
+	return m.itemStyle.UnsetBackground().Render(fill(view, m.itemStyle.GetBackground()))
+}
+
+// fill paints bg behind a rendered block. Styled text inside resets the
+// background as it ends, so it is switched back on after every reset, and
+// short lines are padded so the fill is a clean rectangle.
+func fill(view string, bg color.Color) string {
+	if bg == nil {
+		return view
+	}
+	if _, none := bg.(lipgloss.NoColor); none {
+		return view
+	}
+	on := ansi.NewStyle().BackgroundColor(bg).String()
+	lines := strings.Split(view, "\n")
+	width := 0
+	for _, l := range lines {
+		width = max(width, ansi.StringWidth(l))
+	}
+	for i, l := range lines {
+		l = strings.ReplaceAll(l, "\x1b[m", "\x1b[m"+on)
+		l = strings.ReplaceAll(l, "\x1b[0m", "\x1b[0m"+on)
+		pad := strings.Repeat(" ", width-ansi.StringWidth(l))
+		lines[i] = on + l + pad + "\x1b[m"
+	}
+	return strings.Join(lines, "\n")
 }
 func (m *Model) verticalView() string {
 	var sections []string
