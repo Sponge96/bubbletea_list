@@ -93,14 +93,16 @@ func (m *Model) renderActiveItem() string {
 	}
 	m.Items[m.activeIndex].SetSize(m.width, m.height)
 	if m.selecting() {
-		return m.activeItemStyle.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
+		active := m.activeItemStyle.Border(lipgloss.ThickBorder()).BorderForeground(m.selectedItemStyle.GetForeground())
+		return active.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
 	}
 	return m.activeItemStyle.Render(m.Items[m.activeIndex].View())
 }
 func (m *Model) renderItem(i int) string {
 	m.Items[i].SetSize(m.width, m.height)
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
-		return m.itemStyle.Render(m.selectedItemStyle.Render(m.Items[i].View()))
+		selected := m.itemStyle.BorderForeground(m.selectedItemStyle.GetForeground())
+		return selected.Render(m.selectedItemStyle.Render(m.Items[i].View()))
 	}
 	return m.itemStyle.Render(m.Items[i].View())
 }
