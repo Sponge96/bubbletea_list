@@ -104,7 +104,7 @@ func (m *Model) renderItem(i int) string {
 		selected := m.itemStyle.BorderForeground(m.selectedItemStyle.GetForeground())
 		return selected.Render(m.selectedItemStyle.Render(m.Items[i].View()))
 	}
-	return m.itemStyle.Render(m.Items[i].View())
+	return m.itemStyle.Render(dim(m.Items[i].View()))
 }
 func (m *Model) verticalView() string {
 	var sections []string
