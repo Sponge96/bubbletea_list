@@ -26,6 +26,8 @@ type Model struct {
 	selectionEnd      int
 	ScrollBar         bool
 	FitActiveHeight   bool
+	// ActiveOnly shows just the active item of a horizontal list, not its neighbours.
+	ActiveOnly bool
 }
 
 type ListItem interface {
@@ -155,7 +157,7 @@ func (m *Model) horizontalView() string {
 	sections = append(sections, item)
 
 	// Render items before activeIndex
-	for i := m.activeIndex - 1; i >= 0; i-- {
+	for i := m.activeIndex - 1; i >= 0 && !m.ActiveOnly; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -167,7 +169,7 @@ func (m *Model) horizontalView() string {
 	}
 
 	// Render items after activeIndex
-	for i := m.activeIndex + 1; i < len(m.Items); i++ {
+	for i := m.activeIndex + 1; i < len(m.Items) && !m.ActiveOnly; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -185,7 +187,8 @@ func (m *Model) horizontalView() string {
 		main_view = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(main_view)
 	}
 	if m.ScrollBar {
-		return lipgloss.JoinVertical(lipgloss.Left, main_view, lipgloss.NewStyle().Padding(0, lipgloss.Width(main_view)/2-lipgloss.Width(m.horizontalScrollView())/2).Render(m.horizontalScrollView()))
+		dots := lipgloss.PlaceHorizontal(lipgloss.Width(main_view), lipgloss.Center, m.horizontalScrollView())
+		return lipgloss.JoinVertical(lipgloss.Left, main_view, dots)
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, main_view)
 }
