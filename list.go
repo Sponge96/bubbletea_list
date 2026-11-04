@@ -26,8 +26,7 @@ type Model struct {
 	selectionEnd      int
 	ScrollBar         bool
 	FitActiveHeight   bool
-	// ActiveOnly shows just the active item of a horizontal list, not its neighbours.
-	ActiveOnly bool
+	ActiveOnly        bool
 }
 
 type ListItem interface {
@@ -117,7 +116,6 @@ func (m *Model) verticalView() string {
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
-	// Render items before activeIndex
 	for i := m.activeIndex - 1; i >= 0; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
@@ -129,7 +127,6 @@ func (m *Model) verticalView() string {
 		}
 	}
 
-	// Render items after activeIndex
 	for i := m.activeIndex + 1; i < len(m.Items); i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
@@ -158,7 +155,6 @@ func (m *Model) horizontalView() string {
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
-	// Render items before activeIndex
 	for i := m.activeIndex - 1; i >= 0 && !m.ActiveOnly; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
@@ -170,7 +166,6 @@ func (m *Model) horizontalView() string {
 		}
 	}
 
-	// Render items after activeIndex
 	for i := m.activeIndex + 1; i < len(m.Items) && !m.ActiveOnly; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
@@ -214,7 +209,6 @@ func (m *Model) IncrementItem(step int) {
 	if len == 0 {
 		return
 	}
-	// Exceeded length of Items, sets ActiveIndex to final item instead.
 	if m.activeIndex+step >= len {
 		m.GotoEndItem()
 		return
@@ -229,7 +223,6 @@ func (m *Model) DecrementItem(step int) {
 	if len(m.Items) == 0 {
 		return
 	}
-	// Went into - index, sets ActiveIndex to first item instead.
 	if 0 > m.activeIndex-step {
 		m.GotoStartItem()
 		return

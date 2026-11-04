@@ -24,9 +24,7 @@ func blend(c color.Color, amount float64) (r, g, b int) {
 	return mix(cr, bgR), mix(cg, bgG), mix(cb, bgB)
 }
 
-// dim fades the colours of a rendered block towards the background. Text
-// without a colour of its own is given the faded foreground. Backgrounds are
-// left alone.
+// Backgrounds are left alone; text without a colour gets the faded foreground.
 func dim(view string) string {
 	r, g, b := blend(styles.DraculaForeground, dimAmount)
 	base := fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
@@ -45,7 +43,6 @@ func dim(view string) string {
 	return strings.Join(lines, "\n")
 }
 
-// dimParams fades the 24-bit foreground colours in an SGR parameter list.
 func dimParams(params string) string {
 	parts := strings.Split(params, ";")
 	for i := 0; i < len(parts); i++ {
