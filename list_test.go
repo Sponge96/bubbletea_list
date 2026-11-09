@@ -54,20 +54,30 @@ func fadedForeground() string {
 
 func TestAnEmptyVerticalListKeepsItsScrollbarColumn(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
-	full := New([]ListItem{&textItem{"one"}}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
+	full := New([]ListItem{&fillingItem{}}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
 	full.ScrollBar = true
 	full.SetActiveIndex(0)
 	empty := New([]ListItem{}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
 	empty.ScrollBar = true
 
-	want := 20 + item.GetHorizontalFrameSize() + 1
-	if got := lipgloss.Width(empty.View()); got != want {
-		t.Errorf("an empty list should hold its %d-wide column, got %d", want, got)
+	if got, want := lipgloss.Width(empty.View()), lipgloss.Width(full.View()); got != want {
+		t.Errorf("an empty list should be as wide as a full one (%d), got %d", want, got)
+	}
+	if got := lipgloss.Height(empty.View()); got != 10 {
+		t.Errorf("an empty list should fill its 10 rows, got %d", got)
 	}
 	if strings.Contains(ansi.Strip(empty.View()), "┃") {
 		t.Error("an empty list has nothing to scroll")
 	}
 }
+
+type fillingItem struct{ width int }
+
+func (f *fillingItem) Init() tea.Cmd          { return nil }
+func (f *fillingItem) Update(tea.Msg) tea.Cmd { return nil }
+func (f *fillingItem) View() string           { return lipgloss.NewStyle().Width(f.width).Render("one") }
+func (f *fillingItem) SetSize(w, _ int)       { f.width = w }
+func (f *fillingItem) GetID() int64           { return 0 }
 
 type textItem struct{ text string }
 
