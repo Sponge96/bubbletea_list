@@ -52,6 +52,23 @@ func fadedForeground() string {
 	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
 }
 
+func TestAnEmptyVerticalListKeepsItsScrollbarColumn(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	full := New([]ListItem{&textItem{"one"}}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
+	full.ScrollBar = true
+	full.SetActiveIndex(0)
+	empty := New([]ListItem{}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
+	empty.ScrollBar = true
+
+	want := 20 + item.GetHorizontalFrameSize() + 1
+	if got := lipgloss.Width(empty.View()); got != want {
+		t.Errorf("an empty list should hold its %d-wide column, got %d", want, got)
+	}
+	if strings.Contains(ansi.Strip(empty.View()), "┃") {
+		t.Error("an empty list has nothing to scroll")
+	}
+}
+
 type textItem struct{ text string }
 
 func (t *textItem) Init() tea.Cmd          { return nil }

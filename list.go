@@ -4,6 +4,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"slices"
+	"strings"
 )
 
 type Orientation int
@@ -74,6 +75,9 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 }
 func (m *Model) View() string {
 	if len(m.Items) == 0 {
+		if m.ScrollBar && m.orientation == Vertical {
+			return m.verticalView()
+		}
 		return ""
 	}
 
@@ -139,7 +143,13 @@ func (m *Model) verticalView() string {
 	}
 	mainView := lipgloss.JoinVertical(lipgloss.Left, sections...)
 	if m.ScrollBar {
-		return lipgloss.JoinHorizontal(lipgloss.Left, mainView, lipgloss.NewStyle().Padding(0, lipgloss.Height(mainView)/2-lipgloss.Height(m.verticalScrollView())/2).Render(m.verticalScrollView()))
+		if len(m.Items) == 0 {
+			// hold the item column open so an empty list is as wide as a full one
+			mainView = strings.TrimSuffix(
+				strings.Repeat(strings.Repeat(" ", m.width+m.itemStyle.GetHorizontalFrameSize())+"\n", max(0, m.height)),
+				"\n")
+		}
+		return lipgloss.JoinHorizontal(lipgloss.Left, mainView, m.verticalScrollView())
 	}
 
 	return mainView
@@ -393,19 +403,17 @@ func (m *Model) horizontalScrollView() string {
 }
 
 func (m *Model) verticalScrollView() string {
-	if m.ItemsLen() == 0 {
-		return ""
+	indicatorHeight, indicatorPosition := 0, 0
+	if m.ItemsLen() > 0 {
+		indicatorHeight = max(1, m.height/m.ItemsLen())
+		indicatorPosition = (m.ActiveIndex() * m.height) / m.ItemsLen()
 	}
 
-	indicatorHeight := max(1, m.height/m.ItemsLen())
-	indicatorPosition := (m.ActiveIndex() * m.height) / m.ItemsLen()
-
-	var sections []string
-	for i := 0; i < m.height; i++ {
+	sections := make([]string, max(0, m.height))
+	for i := range sections {
+		sections[i] = " "
 		if i >= indicatorPosition && i < indicatorPosition+indicatorHeight {
-			sections = append(sections, "┃")
-		} else {
-			sections = append(sections, "")
+			sections[i] = "┃"
 		}
 	}
 
