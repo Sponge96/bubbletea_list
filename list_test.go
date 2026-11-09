@@ -2,6 +2,7 @@ package list
 
 import (
 	"fmt"
+	"image/color"
 	"soap/tui/styles"
 	"strings"
 	"testing"
@@ -12,11 +13,14 @@ import (
 )
 
 func TestDimFadesColouredText(t *testing.T) {
-	styled := lipgloss.NewStyle().Foreground(lipgloss.RGBColor{R: 255, G: 121, B: 198}).Render("pink")
-	out := dim(styled)
+	out := dim("\x1b[38;2;255;121;198mpink\x1b[m")
 
 	if strings.Contains(out, "38;2;255;121;198") {
 		t.Errorf("the original colour should be gone: %q", out)
+	}
+	r, g, b := blend(color.RGBA{R: 255, G: 121, B: 198, A: 255}, dimAmount)
+	if want := fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b); !strings.Contains(out, want) {
+		t.Errorf("the colour should be blended towards the background, want %q in %q", want, out)
 	}
 	if ansi.Strip(out) != "pink" {
 		t.Errorf("the text must be unchanged, got %q", ansi.Strip(out))
@@ -24,15 +28,15 @@ func TestDimFadesColouredText(t *testing.T) {
 }
 
 func TestDimGivesPlainTextAFadedColourAfterResets(t *testing.T) {
-	styled := lipgloss.NewStyle().Foreground(lipgloss.RGBColor{R: 255, G: 0, B: 0}).Render("a") + " plain"
-	out := dim(styled)
+	for _, reset := range []string{"\x1b[m", "\x1b[0m"} {
+		out := dim("\x1b[38;2;255;0;0ma" + reset + " plain")
 
-	reset := strings.Index(out, "\x1b[m")
-	if reset < 0 || !strings.Contains(out[reset:], "\x1b[m\x1b[38;2;") {
-		t.Fatalf("plain text after a reset should be faded too: %q", out)
-	}
-	if !strings.HasPrefix(out, "\x1b[38;2;") {
-		t.Errorf("a line should start with the faded default colour: %q", out)
+		if !strings.Contains(out, reset+fadedForeground()+" plain") {
+			t.Errorf("plain text after a %q reset should be faded too: %q", reset, out)
+		}
+		if !strings.HasPrefix(out, fadedForeground()) {
+			t.Errorf("a line should start with the faded default colour: %q", out)
+		}
 	}
 }
 
