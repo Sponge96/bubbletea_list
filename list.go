@@ -4,7 +4,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"slices"
-	"strings"
 )
 
 type Orientation int
@@ -76,7 +75,7 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 func (m *Model) View() string {
 	if len(m.Items) == 0 {
 		if m.ScrollBar && m.orientation == Vertical {
-			return m.verticalView()
+			return lipgloss.JoinHorizontal(lipgloss.Left, m.emptyColumn(), m.verticalScrollView())
 		}
 		return ""
 	}
@@ -90,6 +89,13 @@ func (m *Model) View() string {
 		return ""
 	}
 }
+
+// emptyColumn holds the item column open so an empty list is as wide as a full one.
+func (m *Model) emptyColumn() string {
+	frame := max(m.itemStyle.GetHorizontalFrameSize(), m.activeItemStyle.GetHorizontalFrameSize())
+	return lipgloss.NewStyle().Width(m.width + frame).Height(max(0, m.height)).Render("")
+}
+
 func (m *Model) renderActiveItem() string {
 	if !m.hasValidActiveIndex() {
 		return ""
@@ -143,12 +149,6 @@ func (m *Model) verticalView() string {
 	}
 	mainView := lipgloss.JoinVertical(lipgloss.Left, sections...)
 	if m.ScrollBar {
-		if len(m.Items) == 0 {
-			// hold the item column open so an empty list is as wide as a full one
-			mainView = strings.TrimSuffix(
-				strings.Repeat(strings.Repeat(" ", m.width+m.itemStyle.GetHorizontalFrameSize())+"\n", max(0, m.height)),
-				"\n")
-		}
 		return lipgloss.JoinHorizontal(lipgloss.Left, mainView, m.verticalScrollView())
 	}
 
