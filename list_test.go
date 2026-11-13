@@ -13,7 +13,7 @@ import (
 )
 
 func TestDimFadesColouredText(t *testing.T) {
-	out := dim("\x1b[38;2;255;121;198mpink\x1b[m")
+	out := Dim("\x1b[38;2;255;121;198mpink\x1b[m")
 
 	if strings.Contains(out, "38;2;255;121;198") {
 		t.Errorf("the original colour should be gone: %q", out)
@@ -29,7 +29,7 @@ func TestDimFadesColouredText(t *testing.T) {
 
 func TestDimGivesPlainTextAFadedColourAfterResets(t *testing.T) {
 	for _, reset := range []string{"\x1b[m", "\x1b[0m"} {
-		out := dim("\x1b[38;2;255;0;0ma" + reset + " plain")
+		out := Dim("\x1b[38;2;255;0;0ma" + reset + " plain")
 
 		if !strings.Contains(out, reset+fadedForeground()+" plain") {
 			t.Errorf("plain text after a %q reset should be faded too: %q", reset, out)
@@ -41,7 +41,7 @@ func TestDimGivesPlainTextAFadedColourAfterResets(t *testing.T) {
 }
 
 func TestDimLeavesBackgroundsAlone(t *testing.T) {
-	out := dim("\x1b[48;2;1;2;3mx\x1b[m")
+	out := Dim("\x1b[48;2;1;2;3mx\x1b[m")
 	if !strings.Contains(out, "\x1b[48;2;1;2;3m") {
 		t.Errorf("backgrounds are kept: %q", out)
 	}

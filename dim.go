@@ -25,7 +25,8 @@ func blend(c color.Color, amount float64) (r, g, b int) {
 }
 
 // Backgrounds are left alone; text without a colour gets the faded foreground.
-func dim(view string) string {
+// Dim fades a rendered view towards the background, for what sits behind an overlay.
+func Dim(view string) string {
 	r, g, b := blend(styles.DraculaForeground, dimAmount)
 	base := fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
 
