@@ -24,7 +24,6 @@ func blend(c color.Color, amount float64) (r, g, b int) {
 	return mix(cr, bgR), mix(cg, bgG), mix(cb, bgB)
 }
 
-// Dim fades a rendered view towards the background, for what sits behind an overlay.
 func Dim(view string) string {
 	r, g, b := blend(styles.DraculaForeground, dimAmount)
 	base := fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
