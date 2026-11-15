@@ -27,6 +27,7 @@ type Model struct {
 	ScrollBar         bool
 	FitActiveHeight   bool
 	ActiveOnly        bool
+	FillWidth         bool
 }
 
 type ListItem interface {
@@ -93,7 +94,20 @@ func (m *Model) View() string {
 // emptyColumn holds the item column open so an empty list is as wide as a full one.
 func (m *Model) emptyColumn() string {
 	frame := max(m.itemStyle.GetHorizontalFrameSize(), m.activeItemStyle.GetHorizontalFrameSize())
-	return lipgloss.NewStyle().Width(m.width + frame).Height(max(0, m.height)).Render("")
+	column := lipgloss.NewStyle().Width(m.width + frame).Height(max(0, m.height))
+	return m.fill(column).Render("")
+}
+
+// fill widens a vertical list's item style to the list width, leaving a column for the scroll bar.
+func (m *Model) fill(style lipgloss.Style) lipgloss.Style {
+	if !m.FillWidth || m.orientation != Vertical || m.width <= 0 {
+		return style
+	}
+	w := m.width
+	if m.ScrollBar {
+		w--
+	}
+	return style.Width(max(w, 1))
 }
 
 func (m *Model) renderActiveItem() string {
@@ -102,18 +116,18 @@ func (m *Model) renderActiveItem() string {
 	}
 	m.Items[m.activeIndex].SetSize(m.width, m.height)
 	if m.selecting() {
-		active := m.activeItemStyle.Border(lipgloss.ThickBorder()).BorderForeground(m.selectedItemStyle.GetForeground())
+		active := m.fill(m.activeItemStyle).Border(lipgloss.ThickBorder()).BorderForeground(m.selectedItemStyle.GetForeground())
 		return active.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
 	}
-	return m.activeItemStyle.Render(m.Items[m.activeIndex].View())
+	return m.fill(m.activeItemStyle).Render(m.Items[m.activeIndex].View())
 }
 func (m *Model) renderItem(i int) string {
 	m.Items[i].SetSize(m.width, m.height)
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
-		selected := m.itemStyle.BorderForeground(m.selectedItemStyle.GetForeground())
+		selected := m.fill(m.itemStyle).BorderForeground(m.selectedItemStyle.GetForeground())
 		return selected.Render(m.selectedItemStyle.Render(m.Items[i].View()))
 	}
-	return m.itemStyle.Render(Dim(m.Items[i].View()))
+	return m.fill(m.itemStyle).Render(Dim(m.Items[i].View()))
 }
 func (m *Model) verticalView() string {
 	var sections []string

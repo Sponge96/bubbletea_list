@@ -71,6 +71,63 @@ func TestAnEmptyVerticalListKeepsItsScrollbarColumn(t *testing.T) {
 	}
 }
 
+func TestFillWidthStretchesVerticalItemsToTheListWidth(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	long := strings.Repeat("long title ", 20)
+
+	for _, scroll := range []bool{true, false} {
+		for _, selecting := range []bool{false, true} {
+			l := New([]ListItem{&textItem{"one"}, &textItem{long}, &textItem{"three"}}, Vertical, 30, 40, item, item, lipgloss.NewStyle())
+			l.ScrollBar = scroll
+			l.FillWidth = true
+			l.SetActiveIndex(0)
+			if selecting {
+				l.EnabledSelectionMode()
+				l.IncrementItem(1)
+			}
+			for i, line := range strings.Split(l.View(), "\n") {
+				if got := lipgloss.Width(line); got != 30 {
+					t.Errorf("scrollbar=%v selecting=%v line %d is %d wide, want 30: %q", scroll, selecting, i, got, ansi.Strip(line))
+				}
+			}
+		}
+	}
+}
+
+func TestAnEmptyFilledListIsAsWideAsAFullOne(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	full := New([]ListItem{&textItem{"one"}}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
+	empty := New([]ListItem{}, Vertical, 20, 10, item, item, lipgloss.NewStyle())
+	for _, l := range []*Model{full, empty} {
+		l.ScrollBar = true
+		l.FillWidth = true
+	}
+	full.SetActiveIndex(0)
+
+	if got, want := lipgloss.Width(empty.View()), lipgloss.Width(full.View()); got != want {
+		t.Errorf("an empty list should be as wide as a full one (%d), got %d", want, got)
+	}
+}
+
+func TestFillWidthLeavesHorizontalListsAndUnsizedListsAlone(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	want := lipgloss.Width(item.Render("one"))
+
+	horizontal := New([]ListItem{&textItem{"one"}}, Horizontal, 30, 10, item, item, lipgloss.NewStyle())
+	horizontal.FillWidth = true
+	horizontal.SetActiveIndex(0)
+	if got := lipgloss.Width(horizontal.View()); got != want {
+		t.Errorf("a horizontal list keeps its item width %d, got %d", want, got)
+	}
+
+	unsized := New([]ListItem{&textItem{"one"}}, Vertical, 0, 10, item, item, lipgloss.NewStyle())
+	unsized.FillWidth = true
+	unsized.SetActiveIndex(0)
+	if got := lipgloss.Width(unsized.View()); got != want {
+		t.Errorf("a zero-width list keeps its item width %d, got %d", want, got)
+	}
+}
+
 type fillingItem struct{ width int }
 
 func (f *fillingItem) Init() tea.Cmd          { return nil }
