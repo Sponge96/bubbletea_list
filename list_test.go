@@ -167,7 +167,6 @@ type textItem struct{ text string }
 func (t *textItem) Init() tea.Cmd          { return nil }
 func (t *textItem) Update(tea.Msg) tea.Cmd { return nil }
 func (t *textItem) View() string           { return t.text }
-func (t *textItem) SetSize(int, int)       {}
 
 func TestOnlyTheActiveAndSelectedItemsAreBright(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
@@ -402,5 +401,94 @@ func TestEmptyListsRenderInEveryOrientation(t *testing.T) {
 		} else if got != "" {
 			t.Errorf("%s: an empty list renders nothing, got %q", name, got)
 		}
+	}
+}
+
+type sizeRecorder struct {
+	textItem
+	calls         int
+	width, height int
+}
+
+func (s *sizeRecorder) SetSize(w, h int) {
+	s.calls++
+	s.width, s.height = w, h
+}
+
+func TestViewDoesNotSizeItems(t *testing.T) {
+	l := New(nil, Vertical, 0, 0, Styles{})
+	a, b := &sizeRecorder{textItem: textItem{"a"}}, &sizeRecorder{textItem: textItem{"b"}}
+	l.InsertItem(a, 0)
+	l.InsertItem(b, 1)
+	l.SetSize(30, 10)
+
+	if a.width != 30 || a.height != 10 || b.width != 30 || b.height != 10 {
+		t.Fatalf("items should have been sized (30, 10), got (%d, %d) and (%d, %d)", a.width, a.height, b.width, b.height)
+	}
+	before := a.calls + b.calls
+	l.View()
+	l.View()
+	if got := a.calls + b.calls; got != before {
+		t.Errorf("View sized items: %d calls became %d", before, got)
+	}
+}
+
+func TestNewSizesTheItemsItIsGiven(t *testing.T) {
+	a := &sizeRecorder{}
+	New([]ListItem{a}, Vertical, 25, 7, Styles{})
+
+	if a.width != 25 || a.height != 7 {
+		t.Errorf("want (25, 7), got (%d, %d)", a.width, a.height)
+	}
+}
+
+func TestSetItemSizesTheReplacementAndKeepsTheCursor(t *testing.T) {
+	l := New([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"c"}}, Vertical, 20, 5, Styles{})
+	l.SetActiveIndex(2)
+	fresh := &sizeRecorder{textItem: textItem{"fresh"}}
+
+	l.SetItem(1, fresh)
+
+	if l.Items[1] != ListItem(fresh) {
+		t.Error("the item at index 1 should be replaced")
+	}
+	if fresh.width != 20 || fresh.height != 5 {
+		t.Errorf("replacement should be sized (20, 5), got (%d, %d)", fresh.width, fresh.height)
+	}
+	if l.ActiveIndex() != 2 {
+		t.Errorf("the cursor should stay on 2, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemIgnoresAnOutOfRangeIndex(t *testing.T) {
+	l := New([]ListItem{&textItem{"a"}}, Vertical, 20, 5, Styles{})
+	fresh := &sizeRecorder{}
+
+	l.SetItem(-1, fresh)
+	l.SetItem(1, fresh)
+
+	if len(l.Items) != 1 || l.Items[0].(*textItem).text != "a" {
+		t.Error("the list should be unchanged")
+	}
+	if fresh.calls != 0 {
+		t.Errorf("an ignored item should not be sized, got %d calls", fresh.calls)
+	}
+}
+
+type bareItem struct{}
+
+func (bareItem) Init() tea.Cmd          { return nil }
+func (bareItem) Update(tea.Msg) tea.Cmd { return nil }
+func (bareItem) View() string           { return "bare" }
+
+func TestItemsWithoutSetSizeStillRender(t *testing.T) {
+	l := New([]ListItem{bareItem{}}, Vertical, 20, 5, Styles{})
+	l.InsertItem(bareItem{}, 1)
+	l.SetItem(0, bareItem{})
+	l.SetSize(30, 6)
+	l.SetActiveIndex(0)
+
+	if !strings.Contains(l.View(), "bare") {
+		t.Errorf("an item without SetSize should render, got %q", l.View())
 	}
 }

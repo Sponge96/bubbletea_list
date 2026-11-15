@@ -32,6 +32,10 @@ type ListItem interface {
 	Init() tea.Cmd
 	View() string
 	Update(tea.Msg) tea.Cmd
+}
+
+// Sizer is implemented by items that need to know the list's size.
+type Sizer interface {
 	SetSize(w, h int)
 }
 
@@ -44,7 +48,7 @@ type Styles struct {
 }
 
 func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
-	return &Model{
+	m := &Model{
 		Items:          items,
 		orientation:    orientation,
 		width:          w,
@@ -53,6 +57,16 @@ func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
 		selectionStart: -1,
 		selectionEnd:   -1,
 		styles:         s,
+	}
+	for _, item := range items {
+		m.sizeItem(item)
+	}
+	return m
+}
+
+func (m *Model) sizeItem(item ListItem) {
+	if s, ok := item.(Sizer); ok {
+		s.SetSize(m.width, m.height)
 	}
 }
 func (m *Model) Init() tea.Cmd {
@@ -117,14 +131,12 @@ func (m *Model) renderActiveItem() string {
 	if !m.hasValidActiveIndex() {
 		return ""
 	}
-	m.Items[m.activeIndex].SetSize(m.width, m.height)
 	if m.selecting() {
 		return m.fill(m.styles.SelectedActive).Render(m.Items[m.activeIndex].View())
 	}
 	return m.fill(m.styles.Active).Render(m.Items[m.activeIndex].View())
 }
 func (m *Model) renderItem(i int) string {
-	m.Items[i].SetSize(m.width, m.height)
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
 		return m.fill(m.styles.Selected).Render(m.Items[i].View())
 	}
@@ -292,8 +304,17 @@ func (m *Model) InsertItem(item ListItem, index int) {
 	if index < 0 {
 		index = 0
 	}
+	m.sizeItem(item)
 	m.Items = slices.Insert(m.Items, index, item)
 	m.activeIndex = index
+}
+
+func (m *Model) SetItem(index int, item ListItem) {
+	if index < 0 || index >= len(m.Items) {
+		return
+	}
+	m.sizeItem(item)
+	m.Items[index] = item
 }
 func (m *Model) Selecting() bool {
 	return m.selecting()
@@ -314,6 +335,9 @@ func (m *Model) DisableSelectionMode() {
 }
 func (m *Model) SetSize(w, h int) {
 	m.width, m.height = w, h
+	for _, item := range m.Items {
+		m.sizeItem(item)
+	}
 }
 func (m *Model) GetSelection() []ListItem {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
