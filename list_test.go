@@ -12,12 +12,12 @@ import (
 )
 
 func TestDimFadesColouredText(t *testing.T) {
-	out := Dim("\x1b[38;2;255;121;198mpink\x1b[m")
+	out := Dim("\x1b[38;2;255;121;198mpink\x1b[m", testFade)
 
 	if strings.Contains(out, "38;2;255;121;198") {
 		t.Errorf("the original colour should be gone: %q", out)
 	}
-	r, g, b := blend(color.RGBA{R: 255, G: 121, B: 198, A: 255}, dimAmount)
+	r, g, b := blend(color.RGBA{R: 255, G: 121, B: 198, A: 255}, testFade)
 	if want := fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b); !strings.Contains(out, want) {
 		t.Errorf("the colour should be blended towards the background, want %q in %q", want, out)
 	}
@@ -28,7 +28,7 @@ func TestDimFadesColouredText(t *testing.T) {
 
 func TestDimGivesPlainTextAFadedColourAfterResets(t *testing.T) {
 	for _, reset := range []string{"\x1b[m", "\x1b[0m"} {
-		out := Dim("\x1b[38;2;255;0;0ma" + reset + " plain")
+		out := Dim("\x1b[38;2;255;0;0ma"+reset+" plain", testFade)
 
 		if !strings.Contains(out, reset+fadedForeground()+" plain") {
 			t.Errorf("plain text after a %q reset should be faded too: %q", reset, out)
@@ -40,14 +40,42 @@ func TestDimGivesPlainTextAFadedColourAfterResets(t *testing.T) {
 }
 
 func TestDimLeavesBackgroundsAlone(t *testing.T) {
-	out := Dim("\x1b[48;2;1;2;3mx\x1b[m")
+	out := Dim("\x1b[48;2;1;2;3mx\x1b[m", testFade)
 	if !strings.Contains(out, "\x1b[48;2;1;2;3m") {
 		t.Errorf("backgrounds are kept: %q", out)
 	}
 }
 
+var testFade = Fade{
+	Foreground: lipgloss.RGBColor{R: 0xf8, G: 0xf8, B: 0xf2},
+	Background: lipgloss.RGBColor{R: 0x28, G: 0x2a, B: 0x36},
+	Amount:     0.6,
+}
+
+func TestDimLeavesTheViewAloneWithoutBothColours(t *testing.T) {
+	view := "\x1b[38;2;255;0;0mred\x1b[m plain"
+	for name, f := range map[string]Fade{
+		"no foreground": {Background: testFade.Background, Amount: 0.6},
+		"no background": {Foreground: testFade.Foreground, Amount: 0.6},
+	} {
+		if got := Dim(view, f); got != view {
+			t.Errorf("%s: the view should be unchanged, got %q", name, got)
+		}
+	}
+}
+
+func TestAListWithoutAFadeLeavesInactiveItemsBright(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}}, Vertical, 20, 20, Styles{Item: item, Active: item})
+	l.SetActiveIndex(0)
+
+	if strings.Contains(l.View(), fadedForeground()) {
+		t.Error("without a Fade no item should carry a faded colour")
+	}
+}
+
 func fadedForeground() string {
-	r, g, b := blend(fadeForeground, dimAmount)
+	r, g, b := blend(testFade.Foreground, testFade)
 	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
 }
 
@@ -147,6 +175,7 @@ func TestOnlyTheActiveAndSelectedItemsAreBright(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	bright := lipgloss.NewStyle().Foreground(lipgloss.RGBColor{R: 255, G: 121, B: 198})
 	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{Item: item, Active: item, Selected: bright})
+	l.Fade = &testFade
 	l.SetActiveIndex(0)
 
 	faded := func(text string) bool {

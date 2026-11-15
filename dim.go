@@ -6,22 +6,21 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"charm.land/lipgloss/v2"
 )
 
-var (
-	fadeForeground = lipgloss.RGBColor{R: 0xf8, G: 0xf8, B: 0xf2}
-	fadeBackground = lipgloss.RGBColor{R: 0x28, G: 0x2a, B: 0x36}
-)
-
-// dimAmount is how far dimmed items fade towards the background, 0 to 1.
-const dimAmount = 0.6
+// Fade is how far dimmed text blends from its colour towards Background, with
+// Amount from 0 to 1. Foreground is the colour that plain text is faded from.
+type Fade struct {
+	Foreground color.Color
+	Background color.Color
+	Amount     float64
+}
 
 var sgrSequence = regexp.MustCompile("\x1b\\[([0-9;]*)m")
 
-func blend(c color.Color, amount float64) (r, g, b int) {
-	bgR, bgG, bgB, _ := fadeBackground.RGBA()
+func blend(c color.Color, f Fade) (r, g, b int) {
+	amount := f.Amount
+	bgR, bgG, bgB, _ := f.Background.RGBA()
 	cr, cg, cb, _ := c.RGBA()
 	mix := func(from, to uint32) int {
 		return int(float64(from>>8)*(1-amount) + float64(to>>8)*amount)
@@ -29,8 +28,11 @@ func blend(c color.Color, amount float64) (r, g, b int) {
 	return mix(cr, bgR), mix(cg, bgG), mix(cb, bgB)
 }
 
-func Dim(view string) string {
-	r, g, b := blend(fadeForeground, dimAmount)
+func Dim(view string, f Fade) string {
+	if f.Foreground == nil || f.Background == nil {
+		return view
+	}
+	r, g, b := blend(f.Foreground, f)
 	base := fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
 
 	lines := strings.Split(view, "\n")
@@ -40,14 +42,14 @@ func Dim(view string) string {
 			if params == "" || params == "0" {
 				return seq + base
 			}
-			return "\x1b[" + dimParams(params) + "m"
+			return "\x1b[" + dimParams(params, f) + "m"
 		})
 		lines[i] = base + line + "\x1b[m"
 	}
 	return strings.Join(lines, "\n")
 }
 
-func dimParams(params string) string {
+func dimParams(params string, f Fade) string {
 	parts := strings.Split(params, ";")
 	for i := 0; i < len(parts); i++ {
 		switch parts[i] {
@@ -69,7 +71,7 @@ func dimParams(params string) string {
 						rgb[k] = v
 					}
 					if ok {
-						r, g, b := blend(color.RGBA{R: uint8(rgb[0]), G: uint8(rgb[1]), B: uint8(rgb[2]), A: 255}, dimAmount)
+						r, g, b := blend(color.RGBA{R: uint8(rgb[0]), G: uint8(rgb[1]), B: uint8(rgb[2]), A: 255}, f)
 						parts[i+2], parts[i+3], parts[i+4] = strconv.Itoa(r), strconv.Itoa(g), strconv.Itoa(b)
 					}
 				}

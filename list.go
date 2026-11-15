@@ -26,6 +26,7 @@ type Model struct {
 	FitActiveHeight bool
 	ActiveOnly      bool
 	FillWidth       bool
+	Fade            *Fade
 }
 
 type ListItem interface {
@@ -129,7 +130,11 @@ func (m *Model) renderItem(i int) string {
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
 		return m.fill(m.styles.Selected).Render(m.Items[i].View())
 	}
-	return m.fill(m.styles.Item).Render(Dim(m.Items[i].View()))
+	view := m.Items[i].View()
+	if m.Fade != nil {
+		view = Dim(view, *m.Fade)
+	}
+	return m.fill(m.styles.Item).Render(view)
 }
 func (m *Model) verticalView() string {
 	var sections []string
