@@ -14,20 +14,18 @@ const (
 )
 
 type Model struct {
-	Items             []ListItem
-	orientation       Orientation
-	width             int
-	height            int
-	activeIndex       int
-	itemStyle         lipgloss.Style
-	activeItemStyle   lipgloss.Style
-	selectedItemStyle lipgloss.Style
-	selectionStart    int
-	selectionEnd      int
-	ScrollBar         bool
-	FitActiveHeight   bool
-	ActiveOnly        bool
-	FillWidth         bool
+	Items           []ListItem
+	orientation     Orientation
+	width           int
+	height          int
+	activeIndex     int
+	styles          Styles
+	selectionStart  int
+	selectionEnd    int
+	ScrollBar       bool
+	FitActiveHeight bool
+	ActiveOnly      bool
+	FillWidth       bool
 }
 
 type ListItem interface {
@@ -38,18 +36,24 @@ type ListItem interface {
 	GetID() int64
 }
 
-func New(items []ListItem, orientation Orientation, w, h int, itemStyle, activeItemStyle, selectionStyle lipgloss.Style) *Model {
+type Styles struct {
+	Item           lipgloss.Style
+	Active         lipgloss.Style
+	Selected       lipgloss.Style
+	SelectedActive lipgloss.Style
+	Indicator      lipgloss.Style
+}
+
+func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
 	return &Model{
-		Items:             items,
-		orientation:       orientation,
-		width:             w,
-		height:            h,
-		activeIndex:       -1,
-		selectionStart:    -1,
-		selectionEnd:      -1,
-		itemStyle:         itemStyle,
-		activeItemStyle:   activeItemStyle,
-		selectedItemStyle: selectionStyle,
+		Items:          items,
+		orientation:    orientation,
+		width:          w,
+		height:         h,
+		activeIndex:    -1,
+		selectionStart: -1,
+		selectionEnd:   -1,
+		styles:         s,
 	}
 }
 func (m *Model) Init() tea.Cmd {
@@ -93,7 +97,7 @@ func (m *Model) View() string {
 
 // emptyColumn holds the item column open so an empty list is as wide as a full one.
 func (m *Model) emptyColumn() string {
-	frame := max(m.itemStyle.GetHorizontalFrameSize(), m.activeItemStyle.GetHorizontalFrameSize())
+	frame := max(m.styles.Item.GetHorizontalFrameSize(), m.styles.Active.GetHorizontalFrameSize())
 	column := lipgloss.NewStyle().Width(m.width + frame).Height(max(0, m.height))
 	return m.fill(column).Render("")
 }
@@ -116,18 +120,16 @@ func (m *Model) renderActiveItem() string {
 	}
 	m.Items[m.activeIndex].SetSize(m.width, m.height)
 	if m.selecting() {
-		active := m.fill(m.activeItemStyle).Border(lipgloss.ThickBorder()).BorderForeground(m.selectedItemStyle.GetForeground())
-		return active.Render(m.selectedItemStyle.Render(m.Items[m.activeIndex].View()))
+		return m.fill(m.styles.SelectedActive).Render(m.Items[m.activeIndex].View())
 	}
-	return m.fill(m.activeItemStyle).Render(m.Items[m.activeIndex].View())
+	return m.fill(m.styles.Active).Render(m.Items[m.activeIndex].View())
 }
 func (m *Model) renderItem(i int) string {
 	m.Items[i].SetSize(m.width, m.height)
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
-		selected := m.fill(m.itemStyle).BorderForeground(m.selectedItemStyle.GetForeground())
-		return selected.Render(m.selectedItemStyle.Render(m.Items[i].View()))
+		return m.fill(m.styles.Selected).Render(m.Items[i].View())
 	}
-	return m.fill(m.itemStyle).Render(Dim(m.Items[i].View()))
+	return m.fill(m.styles.Item).Render(Dim(m.Items[i].View()))
 }
 func (m *Model) verticalView() string {
 	var sections []string
@@ -408,9 +410,9 @@ func (m *Model) horizontalScrollView() string {
 	var s string
 	for i := 0; i < m.ItemsLen(); i++ {
 		if i == m.ActiveIndex() {
-			s += "●"
+			s += m.styles.Indicator.Render("●")
 		} else {
-			s += "○"
+			s += m.styles.Indicator.Render("○")
 		}
 	}
 	return s
@@ -427,7 +429,7 @@ func (m *Model) verticalScrollView() string {
 	for i := range sections {
 		sections[i] = " "
 		if i >= indicatorPosition && i < indicatorPosition+indicatorHeight {
-			sections[i] = "┃"
+			sections[i] = m.styles.Indicator.Render("┃")
 		}
 	}
 
