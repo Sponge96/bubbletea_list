@@ -15,6 +15,9 @@ const (
 )
 
 type Model struct {
+	// Items holds the list's items. To replace one after construction use
+	// SetItem, which sizes the replacement; to add one use InsertItem.
+	// Writing to the slice directly skips sizing.
 	Items          []ListItem
 	orientation    Orientation
 	width          int
@@ -25,7 +28,8 @@ type Model struct {
 	selectionEnd   int
 	ScrollBar      bool
 	FillWidth      bool
-	Fade           *Fade
+	// Fade dims inactive items; a nil Fade means they are not dimmed.
+	Fade *Fade
 }
 
 type ListItem interface {
