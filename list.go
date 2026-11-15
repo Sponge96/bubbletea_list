@@ -34,7 +34,6 @@ type ListItem interface {
 	View() string
 	Update(tea.Msg) tea.Cmd
 	SetSize(w, h int)
-	GetID() int64
 }
 
 type Styles struct {
@@ -317,12 +316,6 @@ func (m *Model) DisableSelectionMode() {
 func (m *Model) SetSize(w, h int) {
 	m.width, m.height = w, h
 }
-func (m *Model) ActiveItemID() int64 {
-	if !m.hasValidActiveIndex() {
-		return -1
-	}
-	return m.Items[m.activeIndex].GetID()
-}
 func (m *Model) GetSelection() []ListItem {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return nil
@@ -368,9 +361,9 @@ func (m *Model) SetActiveIndex(i int) {
 	}
 }
 
-func (m *Model) SelectItemByID(id int64) bool {
+func (m *Model) SelectWhere(match func(ListItem) bool) bool {
 	for i, item := range m.Items {
-		if item.GetID() == id {
+		if match(item) {
 			m.activeIndex = i
 			return true
 		}
@@ -391,9 +384,9 @@ func (m *Model) ActiveIndex() int {
 func (m *Model) hasValidActiveIndex() bool {
 	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
 }
-func (m *Model) DeleteItemByID(id int64) {
+func (m *Model) DeleteWhere(match func(ListItem) bool) {
 	for i, item := range m.Items {
-		if item.GetID() == id {
+		if match(item) {
 			m.Items = slices.Delete(m.Items, i, i+1)
 			if m.activeIndex >= len(m.Items) {
 				m.activeIndex = len(m.Items) - 1

@@ -161,7 +161,6 @@ func (f *fillingItem) Init() tea.Cmd          { return nil }
 func (f *fillingItem) Update(tea.Msg) tea.Cmd { return nil }
 func (f *fillingItem) View() string           { return lipgloss.NewStyle().Width(f.width).Render("one") }
 func (f *fillingItem) SetSize(w, _ int)       { f.width = w }
-func (f *fillingItem) GetID() int64           { return 0 }
 
 type textItem struct{ text string }
 
@@ -169,7 +168,6 @@ func (t *textItem) Init() tea.Cmd          { return nil }
 func (t *textItem) Update(tea.Msg) tea.Cmd { return nil }
 func (t *textItem) View() string           { return t.text }
 func (t *textItem) SetSize(int, int)       {}
-func (t *textItem) GetID() int64           { return 0 }
 
 func TestOnlyTheActiveAndSelectedItemsAreBright(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
@@ -277,5 +275,60 @@ func TestIndicatorStyleColoursTheScrollbar(t *testing.T) {
 	plain.SetActiveIndex(0)
 	if strings.Contains(lineWith(t, plain.View(), "┃"), "\x1b") {
 		t.Error("a zero Indicator leaves the thumb unstyled")
+	}
+}
+
+func isText(text string) func(ListItem) bool {
+	return func(it ListItem) bool {
+		ti, ok := it.(*textItem)
+		return ok && ti.text == text
+	}
+}
+
+func TestSelectWhereMovesTheCursorToTheFirstMatch(t *testing.T) {
+	l := New([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"x"}, &textItem{"x"}}, Vertical, 20, 20, Styles{})
+	l.SetActiveIndex(1)
+
+	if !l.SelectWhere(isText("x")) {
+		t.Fatal("expected a match")
+	}
+	if l.ActiveIndex() != 2 {
+		t.Errorf("the cursor should be on the first match, got %d", l.ActiveIndex())
+	}
+	if l.SelectWhere(isText("missing")) {
+		t.Error("no match should return false")
+	}
+	if l.ActiveIndex() != 2 {
+		t.Errorf("no match should not move the cursor, got %d", l.ActiveIndex())
+	}
+}
+
+func TestDeleteWhereRemovesOnlyTheFirstMatch(t *testing.T) {
+	l := New([]ListItem{&textItem{"a"}, &textItem{"x"}, &textItem{"b"}, &textItem{"x"}}, Vertical, 20, 20, Styles{})
+
+	l.DeleteWhere(isText("x"))
+
+	var got []string
+	for _, it := range l.Items {
+		got = append(got, it.(*textItem).text)
+	}
+	if strings.Join(got, ",") != "a,b,x" {
+		t.Errorf("only the first match should go, got %v", got)
+	}
+}
+
+func TestDeleteWhereKeepsTheCursorValid(t *testing.T) {
+	l := New([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"c"}}, Vertical, 20, 20, Styles{})
+	l.SetActiveIndex(2)
+	l.DeleteWhere(isText("c"))
+	if l.ActiveIndex() != 1 || l.ActiveItem().(*textItem).text != "b" {
+		t.Errorf("deleting the active last item should move to the new last, got %d", l.ActiveIndex())
+	}
+
+	only := New([]ListItem{&textItem{"a"}}, Vertical, 20, 20, Styles{})
+	only.SetActiveIndex(0)
+	only.DeleteWhere(isText("a"))
+	if only.ActiveItem() != nil {
+		t.Error("deleting the only item should leave no active item")
 	}
 }
