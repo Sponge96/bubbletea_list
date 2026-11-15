@@ -332,3 +332,75 @@ func TestDeleteWhereKeepsTheCursorValid(t *testing.T) {
 		t.Error("deleting the only item should leave no active item")
 	}
 }
+
+func threeLineItems() []ListItem {
+	return []ListItem{&textItem{"one"}, &textItem{"two\ntwo\ntwo"}, &textItem{"three\nthree"}}
+}
+
+func TestPagerShowsOnlyTheActiveItem(t *testing.T) {
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Pager, 30, 10, Styles{})
+	l.SetActiveIndex(1)
+
+	view := ansi.Strip(l.View())
+	if !strings.Contains(view, "two") {
+		t.Errorf("the active item should show: %q", view)
+	}
+	if strings.Contains(view, "one") || strings.Contains(view, "three") {
+		t.Errorf("only the active item should show: %q", view)
+	}
+}
+
+func TestPagerIsAsTallAsTheActiveItem(t *testing.T) {
+	l := New(threeLineItems(), Pager, 30, 10, Styles{})
+
+	for i, want := range []int{1, 3, 2} {
+		l.SetActiveIndex(i)
+		if got := lipgloss.Height(l.View()); got != want {
+			t.Errorf("item %d: the pager should be %d lines tall, got %d", i, want, got)
+		}
+	}
+}
+
+func TestPagerShowsDotsOnlyWithAScrollBar(t *testing.T) {
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Pager, 30, 10, Styles{})
+	l.SetActiveIndex(0)
+
+	if strings.Contains(ansi.Strip(l.View()), "●○○") {
+		t.Error("no dots without a ScrollBar")
+	}
+	l.ScrollBar = true
+	if !strings.Contains(ansi.Strip(l.View()), "●○○") {
+		t.Errorf("dots expected with a ScrollBar: %q", ansi.Strip(l.View()))
+	}
+}
+
+func TestHorizontalStillShowsNeighbours(t *testing.T) {
+	l := New(threeLineItems(), Horizontal, 30, 10, Styles{})
+	l.SetActiveIndex(1)
+
+	view := ansi.Strip(l.View())
+	for _, text := range []string{"one", "two", "three"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("%q should show in the strip: %q", text, view)
+		}
+	}
+	l.SetActiveIndex(0)
+	if got := lipgloss.Height(l.View()); got != 3 {
+		t.Errorf("a horizontal strip is as tall as its tallest item, got %d", got)
+	}
+}
+
+func TestEmptyListsRenderInEveryOrientation(t *testing.T) {
+	for name, o := range map[string]Orientation{"vertical": Vertical, "horizontal": Horizontal, "pager": Pager} {
+		l := New([]ListItem{}, o, 20, 5, Styles{})
+		l.ScrollBar = true
+		got := l.View()
+		if o == Vertical {
+			if lipgloss.Height(got) != 5 {
+				t.Errorf("%s: an empty vertical list keeps its column, got height %d", name, lipgloss.Height(got))
+			}
+		} else if got != "" {
+			t.Errorf("%s: an empty list renders nothing, got %q", name, got)
+		}
+	}
+}

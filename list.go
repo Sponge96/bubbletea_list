@@ -11,22 +11,21 @@ type Orientation int
 const (
 	Vertical Orientation = iota
 	Horizontal
+	Pager
 )
 
 type Model struct {
-	Items           []ListItem
-	orientation     Orientation
-	width           int
-	height          int
-	activeIndex     int
-	styles          Styles
-	selectionStart  int
-	selectionEnd    int
-	ScrollBar       bool
-	FitActiveHeight bool
-	ActiveOnly      bool
-	FillWidth       bool
-	Fade            *Fade
+	Items          []ListItem
+	orientation    Orientation
+	width          int
+	height         int
+	activeIndex    int
+	styles         Styles
+	selectionStart int
+	selectionEnd   int
+	ScrollBar      bool
+	FillWidth      bool
+	Fade           *Fade
 }
 
 type ListItem interface {
@@ -86,7 +85,7 @@ func (m *Model) View() string {
 	}
 
 	switch m.orientation {
-	case Horizontal:
+	case Horizontal, Pager:
 		return m.horizontalView()
 	case Vertical:
 		return m.verticalView()
@@ -185,7 +184,7 @@ func (m *Model) horizontalView() string {
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
-	for i := m.activeIndex - 1; i >= 0 && !m.ActiveOnly; i-- {
+	for i := m.activeIndex - 1; i >= 0 && m.orientation != Pager; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -196,7 +195,7 @@ func (m *Model) horizontalView() string {
 		}
 	}
 
-	for i := m.activeIndex + 1; i < len(m.Items) && !m.ActiveOnly; i++ {
+	for i := m.activeIndex + 1; i < len(m.Items) && m.orientation != Pager; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -208,7 +207,7 @@ func (m *Model) horizontalView() string {
 	}
 
 	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
-	if m.FitActiveHeight {
+	if m.orientation == Pager {
 		main_view = lipgloss.NewStyle().Height(lipgloss.Height(m.renderActiveItem())).Render(main_view)
 	} else {
 		main_view = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(main_view)
