@@ -1,4 +1,4 @@
-module list
+module github.com/Sponge96/bubbletea_list
 
 go 1.26.7
 
