@@ -343,7 +343,7 @@ func (m *Model) SetSize(w, h int) {
 		m.sizeItem(item)
 	}
 }
-func (m *Model) GetSelection() []ListItem {
+func (m *Model) Selection() []ListItem {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return nil
 	}
