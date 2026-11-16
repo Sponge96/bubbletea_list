@@ -492,3 +492,33 @@ func TestItemsWithoutSetSizeStillRender(t *testing.T) {
 		t.Errorf("an item without SetSize should render, got %q", l.View())
 	}
 }
+
+func TestSelectAllSelectsEveryItemAndParksTheCursorOnTheLast(t *testing.T) {
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{})
+	l.SetActiveIndex(1)
+
+	l.SelectAll()
+
+	if !l.Selecting() {
+		t.Error("select all should start a selection")
+	}
+	if got := len(l.Selection()); got != 3 {
+		t.Errorf("selection has %d items, want 3", got)
+	}
+	if l.ActiveIndex() != 2 {
+		t.Errorf("cursor on %d, want 2", l.ActiveIndex())
+	}
+}
+
+func TestSelectAllOnAnEmptyListDoesNothing(t *testing.T) {
+	l := New(nil, Vertical, 20, 20, Styles{})
+
+	l.SelectAll()
+
+	if l.Selecting() {
+		t.Error("an empty list has nothing to select")
+	}
+	if l.Selection() != nil {
+		t.Errorf("selection = %v, want nil", l.Selection())
+	}
+}

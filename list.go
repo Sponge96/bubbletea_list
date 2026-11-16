@@ -333,6 +333,14 @@ func (m *Model) EnableSelectionMode() {
 	m.selectionStart = m.activeIndex
 	m.selectionEnd = m.activeIndex
 }
+func (m *Model) SelectAll() {
+	if len(m.Items) == 0 {
+		return
+	}
+	m.selectionStart = 0
+	m.selectionEnd = len(m.Items) - 1
+	m.activeIndex = m.selectionEnd
+}
 func (m *Model) DisableSelectionMode() {
 	m.selectionStart = -1
 	m.selectionEnd = -1
