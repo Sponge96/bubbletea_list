@@ -109,7 +109,7 @@ func TestFillWidthStretchesVerticalItemsToTheListWidth(t *testing.T) {
 			l.FillWidth = true
 			l.SetActiveIndex(0)
 			if selecting {
-				l.EnabledSelectionMode()
+				l.EnableSelectionMode()
 				l.IncrementItem(1)
 			}
 			for i, line := range strings.Split(l.View(), "\n") {
@@ -191,7 +191,7 @@ func TestOnlyTheActiveAndSelectedItemsAreBright(t *testing.T) {
 		t.Error("the other items should be faded")
 	}
 
-	l.EnabledSelectionMode()
+	l.EnableSelectionMode()
 	l.IncrementItem(1)
 	if faded("one") || faded("two") {
 		t.Error("selected items should not be faded")
@@ -233,13 +233,13 @@ func TestSelectedRowsUseTheSelectedStyle(t *testing.T) {
 
 	down := newList()
 	down.SetActiveIndex(0)
-	down.EnabledSelectionMode()
+	down.EnableSelectionMode()
 	down.IncrementItem(1)
 	check("selecting down", down)
 
 	up := newList()
 	up.SetActiveIndex(1)
-	up.EnabledSelectionMode()
+	up.EnableSelectionMode()
 	up.DecrementItem(1)
 	check("selecting up", up)
 }
@@ -252,7 +252,7 @@ func TestTheActiveRowWhileSelectingUsesSelectedActive(t *testing.T) {
 	if strings.Contains(l.View(), "┏") {
 		t.Error("the thick border belongs to the selecting state only")
 	}
-	l.EnabledSelectionMode()
+	l.EnableSelectionMode()
 	if !strings.Contains(l.View(), "┏") {
 		t.Error("the active row should use SelectedActive while selecting")
 	}

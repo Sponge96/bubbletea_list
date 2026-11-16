@@ -326,7 +326,7 @@ func (m *Model) Selecting() bool {
 func (m *Model) selecting() bool {
 	return m.selectionStart >= 0
 }
-func (m *Model) EnabledSelectionMode() {
+func (m *Model) EnableSelectionMode() {
 	if !m.hasValidActiveIndex() {
 		return
 	}
