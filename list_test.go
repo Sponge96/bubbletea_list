@@ -337,7 +337,8 @@ func threeLineItems() []ListItem {
 }
 
 func TestPagerShowsOnlyTheActiveItem(t *testing.T) {
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Pager, 30, 10, Styles{})
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Horizontal, 30, 10, Styles{})
+	l.Paged = true
 	l.SetActiveIndex(1)
 
 	view := ansi.Strip(l.View())
@@ -350,7 +351,8 @@ func TestPagerShowsOnlyTheActiveItem(t *testing.T) {
 }
 
 func TestPagerIsAsTallAsTheActiveItem(t *testing.T) {
-	l := New(threeLineItems(), Pager, 30, 10, Styles{})
+	l := New(threeLineItems(), Horizontal, 30, 10, Styles{})
+	l.Paged = true
 
 	for i, want := range []int{1, 3, 2} {
 		l.SetActiveIndex(i)
@@ -361,7 +363,8 @@ func TestPagerIsAsTallAsTheActiveItem(t *testing.T) {
 }
 
 func TestPagerShowsDotsOnlyWithAScrollBar(t *testing.T) {
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Pager, 30, 10, Styles{})
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Horizontal, 30, 10, Styles{})
+	l.Paged = true
 	l.SetActiveIndex(0)
 
 	if strings.Contains(ansi.Strip(l.View()), "●○○") {
@@ -390,7 +393,7 @@ func TestHorizontalStillShowsNeighbours(t *testing.T) {
 }
 
 func TestEmptyListsRenderInEveryOrientation(t *testing.T) {
-	for name, o := range map[string]Orientation{"vertical": Vertical, "horizontal": Horizontal, "pager": Pager} {
+	for name, o := range map[string]Orientation{"vertical": Vertical, "horizontal": Horizontal} {
 		l := New([]ListItem{}, o, 20, 5, Styles{})
 		l.ScrollBar = true
 		got := l.View()

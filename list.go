@@ -11,7 +11,6 @@ type Orientation int
 const (
 	Vertical Orientation = iota
 	Horizontal
-	Pager
 )
 
 type Model struct {
@@ -28,8 +27,8 @@ type Model struct {
 	selectionEnd   int
 	ScrollBar      bool
 	FillWidth      bool
-	// Fade dims inactive items; a nil Fade means they are not dimmed.
-	Fade *Fade
+	Fade           *Fade
+	Paged          bool
 }
 
 type ListItem interface {
@@ -103,7 +102,7 @@ func (m *Model) View() string {
 	}
 
 	switch m.orientation {
-	case Horizontal, Pager:
+	case Horizontal:
 		return m.horizontalView()
 	case Vertical:
 		return m.verticalView()
@@ -161,7 +160,7 @@ func (m *Model) verticalView() string {
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
-	for i := m.activeIndex - 1; i >= 0; i-- {
+	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
 		if itemSize < remainingSpace {
@@ -172,7 +171,7 @@ func (m *Model) verticalView() string {
 		}
 	}
 
-	for i := m.activeIndex + 1; i < len(m.Items); i++ {
+	for i := m.activeIndex + 1; i < len(m.Items) && !m.Paged; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
 		if itemSize < remainingSpace {
@@ -200,7 +199,7 @@ func (m *Model) horizontalView() string {
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
-	for i := m.activeIndex - 1; i >= 0 && m.orientation != Pager; i-- {
+	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -211,7 +210,7 @@ func (m *Model) horizontalView() string {
 		}
 	}
 
-	for i := m.activeIndex + 1; i < len(m.Items) && m.orientation != Pager; i++ {
+	for i := m.activeIndex + 1; i < len(m.Items) && !m.Paged; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -223,7 +222,7 @@ func (m *Model) horizontalView() string {
 	}
 
 	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
-	if m.orientation == Pager {
+	if m.Paged {
 		main_view = lipgloss.NewStyle().Height(lipgloss.Height(m.renderActiveItem())).Render(main_view)
 	} else {
 		main_view = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(main_view)
