@@ -525,3 +525,88 @@ func TestSelectAllOnAnEmptyListDoesNothing(t *testing.T) {
 		t.Errorf("selection = %v, want nil", l.Selection())
 	}
 }
+
+func textList(names ...string) *Model {
+	items := make([]ListItem, len(names))
+	for i, name := range names {
+		items[i] = &textItem{name}
+	}
+	return New(items, Vertical, 20, 20, Styles{})
+}
+
+func texts(items []ListItem) []string {
+	out := make([]string, len(items))
+	for i, it := range items {
+		out[i] = it.(*textItem).text
+	}
+	return out
+}
+
+func TestClearItemsThenInsertDoesNotKeepAStaleSelection(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.ClearItems()
+	if l.ActiveIndex() != -1 || l.Selecting() || l.Selection() != nil {
+		t.Fatalf("a cleared list has no cursor or selection: %d %v", l.ActiveIndex(), l.Selecting())
+	}
+	l.InsertItem(&textItem{"x"}, 0)
+	if got := texts(l.Selection()); len(got) != 1 || got[0] != "x" || l.Selecting() {
+		t.Errorf("want just the active item and no selection, got %v selecting=%v", got, l.Selecting())
+	}
+}
+
+func TestNewPutsTheCursorOnTheFirstItem(t *testing.T) {
+	if got := textList("a", "b").ActiveIndex(); got != 0 {
+		t.Errorf("a list with items starts on 0, got %d", got)
+	}
+	if got := New(nil, Vertical, 20, 20, Styles{}).ActiveIndex(); got != -1 {
+		t.Errorf("an empty list has no cursor, got %d", got)
+	}
+}
+
+func TestInitLeavesTheCursorAlone(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(1)
+	l.Init()
+	if got := l.ActiveIndex(); got != 1 {
+		t.Errorf("Init must not move the cursor, got %d", got)
+	}
+}
+
+func TestNewCopiesTheSliceItIsGiven(t *testing.T) {
+	original := &textItem{"a"}
+	items := []ListItem{original, &textItem{"b"}}
+	l := New(items, Vertical, 20, 20, Styles{})
+	items[0] = &textItem{"z"}
+	if l.ItemAt(0) != ListItem(original) {
+		t.Error("changing the caller's slice must not change the list")
+	}
+}
+
+func TestDeleteWhereToEmptyLeavesTheCursorAtMinusOne(t *testing.T) {
+	l := textList("a")
+	l.DeleteWhere(isText("a"))
+	if got := l.ActiveIndex(); got != -1 {
+		t.Errorf("an emptied list has no cursor, got %d", got)
+	}
+}
+
+func TestSetActiveIndexWhileSelectingExtendsTheSelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.EnableSelectionMode()
+	l.SetActiveIndex(2)
+	if got := strings.Join(texts(l.Selection()), ","); got != "a,b,c" {
+		t.Errorf("the selection should follow the cursor, got %s", got)
+	}
+}
+
+func TestSelectWhereWhileSelectingExtendsTheSelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.EnableSelectionMode()
+	l.SelectWhere(isText("c"))
+	if got := strings.Join(texts(l.Selection()), ","); got != "a,b,c" {
+		t.Errorf("the selection should follow the cursor, got %s", got)
+	}
+}

@@ -21,7 +21,6 @@ type Model struct {
 	activeIndex    int
 	styles         Styles
 	selectionStart int
-	selectionEnd   int
 	ScrollBar      bool
 	FillWidth      bool
 	Fade           *Fade
@@ -49,19 +48,35 @@ type Styles struct {
 
 func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
 	m := &Model{
-		items:          items,
+		items:          slices.Clone(items),
 		orientation:    orientation,
 		width:          w,
 		height:         h,
 		activeIndex:    -1,
 		selectionStart: -1,
-		selectionEnd:   -1,
 		styles:         s,
 	}
-	for _, item := range items {
+	for _, item := range m.items {
 		m.sizeItem(item)
 	}
+	m.normalize()
 	return m
+}
+
+func (m *Model) normalize() {
+	if len(m.items) == 0 {
+		m.activeIndex, m.selectionStart = -1, -1
+		return
+	}
+	last := len(m.items) - 1
+	m.activeIndex = min(max(m.activeIndex, 0), last)
+	if m.selecting() {
+		m.selectionStart = min(max(m.selectionStart, 0), last)
+	}
+}
+
+func (m *Model) selectionRange() (lo, hi int) {
+	return min(m.selectionStart, m.activeIndex), max(m.selectionStart, m.activeIndex)
 }
 
 func (m *Model) Items() []ListItem {
@@ -85,9 +100,6 @@ func (m *Model) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	for _, item := range m.items {
 		cmds = append(cmds, item.Init())
-	}
-	if m.hasValidActiveIndex() {
-		m.activeIndex = 0
 	}
 	return tea.Batch(cmds...)
 }
@@ -150,8 +162,10 @@ func (m *Model) renderActiveItem() string {
 }
 
 func (m *Model) renderItem(i int) string {
-	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
-		return m.fill(m.styles.Selected).Render(m.items[i].View())
+	if m.selecting() {
+		if lo, hi := m.selectionRange(); lo <= i && i <= hi {
+			return m.fill(m.styles.Selected).Render(m.items[i].View())
+		}
 	}
 	view := m.items[i].View()
 	if m.Fade != nil {
@@ -251,9 +265,7 @@ func (m *Model) IncrementItem(step int) {
 		return
 	}
 	m.activeIndex += step
-	if m.selecting() {
-		m.selectionEnd = m.activeIndex
-	}
+	m.normalize()
 }
 
 func (m *Model) DecrementItem(step int) {
@@ -265,36 +277,22 @@ func (m *Model) DecrementItem(step int) {
 		return
 	}
 	m.activeIndex -= step
-	if m.selecting() {
-		m.selectionEnd = m.activeIndex
-	}
+	m.normalize()
 }
 
 func (m *Model) GotoStartItem() {
-	if len(m.items) == 0 {
-		m.activeIndex = -1
-		return
-	}
 	m.activeIndex = 0
-	if m.selecting() {
-		m.selectionEnd = 0
-	}
+	m.normalize()
 }
 
 func (m *Model) GotoEndItem() {
-	if len(m.items) == 0 {
-		m.activeIndex = -1
-		return
-	}
 	m.activeIndex = len(m.items) - 1
-	if m.selecting() {
-		m.selectionEnd = m.activeIndex
-	}
+	m.normalize()
 }
 
 func (m *Model) ClearItems() {
 	m.items = nil
-	m.activeIndex = -1
+	m.normalize()
 }
 
 func (m *Model) InsertItem(item ListItem, index int) {
@@ -307,6 +305,7 @@ func (m *Model) InsertItem(item ListItem, index int) {
 	m.sizeItem(item)
 	m.items = slices.Insert(m.items, index, item)
 	m.activeIndex = index
+	m.normalize()
 }
 
 func (m *Model) SetItem(index int, item ListItem) {
@@ -330,7 +329,6 @@ func (m *Model) EnableSelectionMode() {
 		return
 	}
 	m.selectionStart = m.activeIndex
-	m.selectionEnd = m.activeIndex
 }
 
 func (m *Model) SelectAll() {
@@ -338,13 +336,11 @@ func (m *Model) SelectAll() {
 		return
 	}
 	m.selectionStart = 0
-	m.selectionEnd = len(m.items) - 1
-	m.activeIndex = m.selectionEnd
+	m.activeIndex = len(m.items) - 1
 }
 
 func (m *Model) DisableSelectionMode() {
 	m.selectionStart = -1
-	m.selectionEnd = -1
 }
 
 func (m *Model) SetSize(w, h int) {
@@ -373,11 +369,8 @@ func (m *Model) Selection() []ListItem {
 		return selection
 	}
 
-	m.sortSelection()
-	for _, item := range m.items[m.selectionStart : m.selectionEnd+1] {
-		selection = append(selection, item)
-	}
-	return selection
+	lo, hi := m.selectionRange()
+	return slices.Clone(m.items[lo : hi+1])
 }
 
 func (m *Model) DeleteSelection() {
@@ -385,43 +378,30 @@ func (m *Model) DeleteSelection() {
 		return
 	}
 	if m.selecting() {
-		m.sortSelection()
-		m.items = slices.Delete(m.items, m.selectionStart, m.selectionEnd+1)
-		m.activeIndex = m.selectionStart
+		lo, hi := m.selectionRange()
+		m.items = slices.Delete(m.items, lo, hi+1)
+		m.activeIndex = lo
 		m.DisableSelectionMode()
 	} else {
 		m.items = slices.Delete(m.items, m.activeIndex, m.activeIndex+1)
 	}
-	m.SetActiveIndex(m.activeIndex)
+	m.normalize()
 }
 
 func (m *Model) SetActiveIndex(i int) {
-	switch {
-	case len(m.items) == 0:
-		m.activeIndex = -1
-	case i < 0:
-		m.activeIndex = 0
-	case i >= len(m.items):
-		m.activeIndex = len(m.items) - 1
-	default:
-		m.activeIndex = i
-	}
+	m.activeIndex = i
+	m.normalize()
 }
 
 func (m *Model) SelectWhere(match func(ListItem) bool) bool {
 	for i, item := range m.items {
 		if match(item) {
 			m.activeIndex = i
+			m.normalize()
 			return true
 		}
 	}
 	return false
-}
-
-func (m *Model) sortSelection() {
-	if m.selectionStart > m.selectionEnd {
-		m.selectionStart, m.selectionEnd = m.selectionEnd, m.selectionStart
-	}
 }
 
 func (m *Model) ItemsLen() int {
@@ -444,15 +424,10 @@ func (m *Model) DeleteWhere(match func(ListItem) bool) {
 	for i, item := range m.items {
 		if match(item) {
 			m.items = slices.Delete(m.items, i, i+1)
-			if m.activeIndex >= len(m.items) {
-				m.activeIndex = len(m.items) - 1
-			}
-			if m.activeIndex < 0 {
-				m.activeIndex = 0
-			}
 			break
 		}
 	}
+	m.normalize()
 }
 
 func (m *Model) ActiveItem() ListItem {
