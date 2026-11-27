@@ -610,3 +610,144 @@ func TestSelectWhereWhileSelectingExtendsTheSelection(t *testing.T) {
 		t.Errorf("the selection should follow the cursor, got %s", got)
 	}
 }
+
+func activeText(l *Model) string {
+	if it := l.ActiveItem(); it != nil {
+		return it.(*textItem).text
+	}
+	return ""
+}
+
+func selectedTexts(l *Model) string { return strings.Join(texts(l.Selection()), ",") }
+
+func TestInsertBeforeTheCursorKeepsItOnTheSameItem(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(2)
+	l.InsertItem(&textItem{"x"}, 0)
+	if activeText(l) != "c" || l.ActiveIndex() != 3 {
+		t.Errorf("cursor should follow c to index 3, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestInsertAtTheCursorPushesItDown(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.InsertItem(&textItem{"x"}, 1)
+	if activeText(l) != "b" || l.ActiveIndex() != 2 {
+		t.Errorf("cursor should follow b to index 2, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestInsertAfterTheCursorLeavesItAlone(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(0)
+	l.InsertItem(&textItem{"x"}, 2)
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should stay on 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestInsertIntoAnEmptyListPutsTheCursorOnIt(t *testing.T) {
+	l := textList()
+	l.InsertItem(&textItem{"x"}, 0)
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should be on 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestInsertShiftsASelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.InsertItem(&textItem{"x"}, 0)
+	if got := selectedTexts(l); got != "a,b" || activeText(l) != "b" {
+		t.Errorf("selection should still be a,b with the cursor on b, got %s on %q", got, activeText(l))
+	}
+}
+
+func TestInsertWithAnOutOfRangeIndexIsClamped(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.InsertItem(&textItem{"x"}, -5)
+	if got := strings.Join(texts(l.Items()), ","); got != "x,a,b" || selectedTexts(l) != "a" {
+		t.Errorf("want x,a,b with a selected, got %s with %s selected", got, selectedTexts(l))
+	}
+	l.InsertItem(&textItem{"y"}, 99)
+	if got := strings.Join(texts(l.Items()), ","); got != "x,a,b,y" || selectedTexts(l) != "a" {
+		t.Errorf("want x,a,b,y with a selected, got %s with %s selected", got, selectedTexts(l))
+	}
+}
+
+func TestDeleteBeforeTheCursorKeepsItOnTheSameItem(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(2)
+	l.DeleteWhere(isText("a"))
+	if activeText(l) != "c" || l.ActiveIndex() != 1 {
+		t.Errorf("cursor should follow c to index 1, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestDeleteTheCursorItemMovesFocusToTheNext(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.DeleteWhere(isText("b"))
+	if activeText(l) != "c" || l.ActiveIndex() != 1 {
+		t.Errorf("focus should move to c at index 1, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestDeleteInsideASelectionShrinksIt(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(2)
+	l.DeleteWhere(isText("b"))
+	if got := selectedTexts(l); got != "a,c" || activeText(l) != "c" {
+		t.Errorf("selection should be a,c with the cursor on c, got %s on %q", got, activeText(l))
+	}
+}
+
+func TestDeletingTheCursorEndOfASelectionOnlyLeavesSelectedItems(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(2)
+	l.DeleteWhere(isText("c"))
+	if got := selectedTexts(l); got != "a,b" || activeText(l) != "b" {
+		t.Errorf("selection should be a,b with the cursor on b, got %s on %q", got, activeText(l))
+	}
+}
+
+func TestDeletingEverySelectedItemClearsTheSelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.EnableSelectionMode()
+	l.DeleteWhere(isText("b"))
+	if l.Selecting() || activeText(l) != "c" {
+		t.Errorf("selection should be cleared with the cursor on c, got selecting=%v on %q", l.Selecting(), activeText(l))
+	}
+}
+
+func TestDeleteWhereWithNoMatchChangesNothing(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.DeleteWhere(isText("zzz"))
+	if got := strings.Join(texts(l.Items()), ","); got != "a,b,c" || l.ActiveIndex() != 2 || selectedTexts(l) != "b,c" {
+		t.Errorf("nothing should change, got %s cursor %d selection %s", got, l.ActiveIndex(), selectedTexts(l))
+	}
+}
+
+func TestDeleteSelectionRemovesTheRangeAndClearsIt(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(1)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.DeleteSelection()
+	if got := strings.Join(texts(l.Items()), ","); got != "a,d" || activeText(l) != "d" || l.Selecting() {
+		t.Errorf("want a,d with the cursor on d and no selection, got %s on %q selecting=%v", got, activeText(l), l.Selecting())
+	}
+}

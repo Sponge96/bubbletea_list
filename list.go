@@ -295,6 +295,9 @@ func (m *Model) ClearItems() {
 	m.normalize()
 }
 
+// InsertItem inserts item at index, clamped to the list. The cursor and any
+// selection keep pointing at the same items; inserting into an empty list puts
+// the cursor on the new item.
 func (m *Model) InsertItem(item ListItem, index int) {
 	if index > len(m.items) {
 		index = len(m.items)
@@ -304,7 +307,12 @@ func (m *Model) InsertItem(item ListItem, index int) {
 	}
 	m.sizeItem(item)
 	m.items = slices.Insert(m.items, index, item)
-	m.activeIndex = index
+	if m.activeIndex >= index {
+		m.activeIndex++
+	}
+	if m.selecting() && m.selectionStart >= index {
+		m.selectionStart++
+	}
 	m.normalize()
 }
 
@@ -420,12 +428,41 @@ func (m *Model) hasValidActiveIndex() bool {
 	return len(m.items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.items)
 }
 
+// DeleteWhere removes only the first item for which match returns true. The
+// cursor and any selection keep following the same items; if the cursor's own
+// item goes, focus moves to the item after it. A selection whose items are all
+// deleted is cleared.
 func (m *Model) DeleteWhere(match func(ListItem) bool) {
-	for i, item := range m.items {
-		if match(item) {
-			m.items = slices.Delete(m.items, i, i+1)
-			break
+	d := slices.IndexFunc(m.items, match)
+	if d < 0 {
+		return
+	}
+	m.items = slices.Delete(m.items, d, d+1)
+	if !m.selecting() {
+		if d < m.activeIndex {
+			m.activeIndex--
 		}
+		m.normalize()
+		return
+	}
+
+	lo, hi := m.selectionRange()
+	cursorIsHigh := m.activeIndex >= m.selectionStart
+	switch {
+	case d < lo:
+		lo--
+		hi--
+	case d <= hi:
+		hi--
+	}
+	switch {
+	case hi < lo:
+		m.selectionStart = -1
+		m.activeIndex = d
+	case cursorIsHigh:
+		m.selectionStart, m.activeIndex = lo, hi
+	default:
+		m.selectionStart, m.activeIndex = hi, lo
 	}
 	m.normalize()
 }
