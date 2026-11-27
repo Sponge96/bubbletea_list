@@ -14,9 +14,6 @@ const (
 )
 
 type Model struct {
-	// Items holds the list's items. To replace one after construction use
-	// SetItem, which sizes the replacement; to add one use InsertItem.
-	// Writing to the slice directly skips sizing.
 	Items          []ListItem
 	orientation    Orientation
 	width          int
@@ -114,14 +111,12 @@ func (m *Model) View() string {
 	}
 }
 
-// emptyColumn holds the item column open so an empty list is as wide as a full one.
 func (m *Model) emptyColumn() string {
 	frame := max(m.styles.Item.GetHorizontalFrameSize(), m.styles.Active.GetHorizontalFrameSize())
 	column := lipgloss.NewStyle().Width(m.width + frame).Height(max(0, m.height))
 	return m.fill(column).Render("")
 }
 
-// fill widens a vertical list's item style to the list width, leaving a column for the scroll bar.
 func (m *Model) fill(style lipgloss.Style) lipgloss.Style {
 	if !m.FillWidth || m.orientation != Vertical || m.width <= 0 {
 		return style
