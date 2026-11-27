@@ -65,7 +65,7 @@ func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
 }
 
 func (m *Model) Items() []ListItem {
-	return m.items
+	return slices.Clone(m.items)
 }
 
 func (m *Model) ItemAt(i int) ListItem {
