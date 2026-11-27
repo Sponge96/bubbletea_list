@@ -367,6 +367,14 @@ func (m *Model) SetSize(w, h int) {
 	}
 }
 
+func (m *Model) Width() int {
+	return m.width
+}
+
+func (m *Model) Height() int {
+	return m.height
+}
+
 func (m *Model) Selection() []ListItem {
 	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
 		return nil
@@ -435,6 +443,10 @@ func (m *Model) ItemsLen() int {
 
 func (m *Model) ActiveIndex() int {
 	return m.activeIndex
+}
+
+func (m *Model) Orientation() Orientation {
+	return m.orientation
 }
 
 func (m *Model) hasValidActiveIndex() bool {
