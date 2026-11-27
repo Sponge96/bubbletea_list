@@ -308,7 +308,7 @@ func TestDeleteWhereRemovesOnlyTheFirstMatch(t *testing.T) {
 	l.DeleteWhere(isText("x"))
 
 	var got []string
-	for _, it := range l.Items {
+	for _, it := range l.Items() {
 		got = append(got, it.(*textItem).text)
 	}
 	if strings.Join(got, ",") != "a,b,x" {
@@ -452,7 +452,7 @@ func TestSetItemSizesTheReplacementAndKeepsTheCursor(t *testing.T) {
 
 	l.SetItem(1, fresh)
 
-	if l.Items[1] != ListItem(fresh) {
+	if l.ItemAt(1) != ListItem(fresh) {
 		t.Error("the item at index 1 should be replaced")
 	}
 	if fresh.width != 20 || fresh.height != 5 {
@@ -470,7 +470,7 @@ func TestSetItemIgnoresAnOutOfRangeIndex(t *testing.T) {
 	l.SetItem(-1, fresh)
 	l.SetItem(1, fresh)
 
-	if len(l.Items) != 1 || l.Items[0].(*textItem).text != "a" {
+	if l.ItemsLen() != 1 || l.ItemAt(0).(*textItem).text != "a" {
 		t.Error("the list should be unchanged")
 	}
 	if fresh.calls != 0 {

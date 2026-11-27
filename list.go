@@ -14,7 +14,7 @@ const (
 )
 
 type Model struct {
-	Items          []ListItem
+	items          []ListItem
 	orientation    Orientation
 	width          int
 	height         int
@@ -49,7 +49,7 @@ type Styles struct {
 
 func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
 	m := &Model{
-		Items:          items,
+		items:          items,
 		orientation:    orientation,
 		width:          w,
 		height:         h,
@@ -64,6 +64,17 @@ func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
 	return m
 }
 
+func (m *Model) Items() []ListItem {
+	return m.items
+}
+
+func (m *Model) ItemAt(i int) ListItem {
+	if i < 0 || i >= len(m.items) {
+		return nil
+	}
+	return m.items[i]
+}
+
 func (m *Model) sizeItem(item ListItem) {
 	if s, ok := item.(Sizer); ok {
 		s.SetSize(m.width, m.height)
@@ -72,7 +83,7 @@ func (m *Model) sizeItem(item ListItem) {
 
 func (m *Model) Init() tea.Cmd {
 	var cmds []tea.Cmd
-	for _, item := range m.Items {
+	for _, item := range m.items {
 		cmds = append(cmds, item.Init())
 	}
 	if m.hasValidActiveIndex() {
@@ -84,7 +95,7 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) Update(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
-	for _, item := range m.Items {
+	for _, item := range m.items {
 		cmd = item.Update(msg)
 		if cmd != nil {
 			cmds = append(cmds, cmd)
@@ -94,7 +105,7 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (m *Model) View() string {
-	if len(m.Items) == 0 {
+	if len(m.items) == 0 {
 		if m.ScrollBar && m.orientation == Vertical {
 			return lipgloss.JoinHorizontal(lipgloss.Left, m.emptyColumn(), m.verticalScrollView())
 		}
@@ -133,16 +144,16 @@ func (m *Model) renderActiveItem() string {
 		return ""
 	}
 	if m.selecting() {
-		return m.fill(m.styles.SelectedActive).Render(m.Items[m.activeIndex].View())
+		return m.fill(m.styles.SelectedActive).Render(m.items[m.activeIndex].View())
 	}
-	return m.fill(m.styles.Active).Render(m.Items[m.activeIndex].View())
+	return m.fill(m.styles.Active).Render(m.items[m.activeIndex].View())
 }
 
 func (m *Model) renderItem(i int) string {
 	if m.selecting() && ((m.selectionStart <= i && i <= m.selectionEnd) || (m.selectionEnd <= i && i <= m.selectionStart)) {
-		return m.fill(m.styles.Selected).Render(m.Items[i].View())
+		return m.fill(m.styles.Selected).Render(m.items[i].View())
 	}
-	view := m.Items[i].View()
+	view := m.items[i].View()
 	if m.Fade != nil {
 		view = Dim(view, *m.Fade)
 	}
@@ -170,7 +181,7 @@ func (m *Model) renderVerticalSections() []string {
 		}
 	}
 
-	for i := m.activeIndex + 1; i < len(m.Items) && !m.Paged; i++ {
+	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
 		if itemSize < remainingSpace {
@@ -214,7 +225,7 @@ func (m *Model) renderHorizontalSections() []string {
 		}
 	}
 
-	for i := m.activeIndex + 1; i < len(m.Items) && !m.Paged; i++ {
+	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
 		if itemSize < remainingSpace {
@@ -245,7 +256,7 @@ func (m *Model) horizontalView() string {
 
 func (m *Model) tallestItemHeight() int {
 	tallest := 0
-	for i := range m.Items {
+	for i := range m.items {
 		var item string
 		if i == m.activeIndex {
 			item = m.renderActiveItem()
@@ -258,7 +269,7 @@ func (m *Model) tallestItemHeight() int {
 }
 
 func (m *Model) IncrementItem(step int) {
-	len := len(m.Items)
+	len := len(m.items)
 	if len == 0 {
 		return
 	}
@@ -273,7 +284,7 @@ func (m *Model) IncrementItem(step int) {
 }
 
 func (m *Model) DecrementItem(step int) {
-	if len(m.Items) == 0 {
+	if len(m.items) == 0 {
 		return
 	}
 	if 0 > m.activeIndex-step {
@@ -287,7 +298,7 @@ func (m *Model) DecrementItem(step int) {
 }
 
 func (m *Model) GotoStartItem() {
-	if len(m.Items) == 0 {
+	if len(m.items) == 0 {
 		m.activeIndex = -1
 		return
 	}
@@ -298,39 +309,39 @@ func (m *Model) GotoStartItem() {
 }
 
 func (m *Model) GotoEndItem() {
-	if len(m.Items) == 0 {
+	if len(m.items) == 0 {
 		m.activeIndex = -1
 		return
 	}
-	m.activeIndex = len(m.Items) - 1
+	m.activeIndex = len(m.items) - 1
 	if m.selecting() {
 		m.selectionEnd = m.activeIndex
 	}
 }
 
 func (m *Model) ClearItems() {
-	m.Items = nil
+	m.items = nil
 	m.activeIndex = -1
 }
 
 func (m *Model) InsertItem(item ListItem, index int) {
-	if index > len(m.Items) {
-		index = len(m.Items)
+	if index > len(m.items) {
+		index = len(m.items)
 	}
 	if index < 0 {
 		index = 0
 	}
 	m.sizeItem(item)
-	m.Items = slices.Insert(m.Items, index, item)
+	m.items = slices.Insert(m.items, index, item)
 	m.activeIndex = index
 }
 
 func (m *Model) SetItem(index int, item ListItem) {
-	if index < 0 || index >= len(m.Items) {
+	if index < 0 || index >= len(m.items) {
 		return
 	}
 	m.sizeItem(item)
-	m.Items[index] = item
+	m.items[index] = item
 }
 
 func (m *Model) Selecting() bool {
@@ -350,11 +361,11 @@ func (m *Model) EnableSelectionMode() {
 }
 
 func (m *Model) SelectAll() {
-	if len(m.Items) == 0 {
+	if len(m.items) == 0 {
 		return
 	}
 	m.selectionStart = 0
-	m.selectionEnd = len(m.Items) - 1
+	m.selectionEnd = len(m.items) - 1
 	m.activeIndex = m.selectionEnd
 }
 
@@ -365,7 +376,7 @@ func (m *Model) DisableSelectionMode() {
 
 func (m *Model) SetSize(w, h int) {
 	m.width, m.height = w, h
-	for _, item := range m.Items {
+	for _, item := range m.items {
 		m.sizeItem(item)
 	}
 }
@@ -379,7 +390,7 @@ func (m *Model) Height() int {
 }
 
 func (m *Model) Selection() []ListItem {
-	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
+	if len(m.items) == 0 || !m.hasValidActiveIndex() {
 		return nil
 	}
 
@@ -390,42 +401,42 @@ func (m *Model) Selection() []ListItem {
 	}
 
 	m.sortSelection()
-	for _, item := range m.Items[m.selectionStart : m.selectionEnd+1] {
+	for _, item := range m.items[m.selectionStart : m.selectionEnd+1] {
 		selection = append(selection, item)
 	}
 	return selection
 }
 
 func (m *Model) DeleteSelection() {
-	if len(m.Items) == 0 || !m.hasValidActiveIndex() {
+	if len(m.items) == 0 || !m.hasValidActiveIndex() {
 		return
 	}
 	if m.selecting() {
 		m.sortSelection()
-		m.Items = slices.Delete(m.Items, m.selectionStart, m.selectionEnd+1)
+		m.items = slices.Delete(m.items, m.selectionStart, m.selectionEnd+1)
 		m.activeIndex = m.selectionStart
 		m.DisableSelectionMode()
 	} else {
-		m.Items = slices.Delete(m.Items, m.activeIndex, m.activeIndex+1)
+		m.items = slices.Delete(m.items, m.activeIndex, m.activeIndex+1)
 	}
 	m.SetActiveIndex(m.activeIndex)
 }
 
 func (m *Model) SetActiveIndex(i int) {
 	switch {
-	case len(m.Items) == 0:
+	case len(m.items) == 0:
 		m.activeIndex = -1
 	case i < 0:
 		m.activeIndex = 0
-	case i >= len(m.Items):
-		m.activeIndex = len(m.Items) - 1
+	case i >= len(m.items):
+		m.activeIndex = len(m.items) - 1
 	default:
 		m.activeIndex = i
 	}
 }
 
 func (m *Model) SelectWhere(match func(ListItem) bool) bool {
-	for i, item := range m.Items {
+	for i, item := range m.items {
 		if match(item) {
 			m.activeIndex = i
 			return true
@@ -441,7 +452,7 @@ func (m *Model) sortSelection() {
 }
 
 func (m *Model) ItemsLen() int {
-	return len(m.Items)
+	return len(m.items)
 }
 
 func (m *Model) ActiveIndex() int {
@@ -453,15 +464,15 @@ func (m *Model) Orientation() Orientation {
 }
 
 func (m *Model) hasValidActiveIndex() bool {
-	return len(m.Items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.Items)
+	return len(m.items) > 0 && m.activeIndex >= 0 && m.activeIndex < len(m.items)
 }
 
 func (m *Model) DeleteWhere(match func(ListItem) bool) {
-	for i, item := range m.Items {
+	for i, item := range m.items {
 		if match(item) {
-			m.Items = slices.Delete(m.Items, i, i+1)
-			if m.activeIndex >= len(m.Items) {
-				m.activeIndex = len(m.Items) - 1
+			m.items = slices.Delete(m.items, i, i+1)
+			if m.activeIndex >= len(m.items) {
+				m.activeIndex = len(m.items) - 1
 			}
 			if m.activeIndex < 0 {
 				m.activeIndex = 0
@@ -475,12 +486,12 @@ func (m *Model) ActiveItem() ListItem {
 	if !m.hasValidActiveIndex() {
 		return nil
 	}
-	return m.Items[m.activeIndex]
+	return m.items[m.activeIndex]
 }
 
 func (m *Model) horizontalScrollView() string {
 	var s string
-	for i := 0; i < m.ItemsLen(); i++ {
+	for i := 0; i < m.itemsLen(); i++ {
 		if i == m.ActiveIndex() {
 			s += m.styles.Indicator.Render("●")
 		} else {
@@ -492,9 +503,9 @@ func (m *Model) horizontalScrollView() string {
 
 func (m *Model) verticalScrollView() string {
 	indicatorHeight, indicatorPosition := 0, 0
-	if m.ItemsLen() > 0 {
-		indicatorHeight = max(1, m.height/m.ItemsLen())
-		indicatorPosition = (m.ActiveIndex() * m.height) / m.ItemsLen()
+	if m.itemsLen() > 0 {
+		indicatorHeight = max(1, m.height/m.itemsLen())
+		indicatorPosition = (m.ActiveIndex() * m.height) / m.itemsLen()
 	}
 
 	sections := make([]string, max(0, m.height))
