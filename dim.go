@@ -8,12 +8,10 @@ import (
 	"strings"
 )
 
-// Fade is how far dimmed text blends from its colour towards Background, with
-// Amount from 0 to 1. Foreground is the colour that plain text is faded from.
-// Fading is truecolor only: it blends 38;2;r;g;b foreground colours, while
-// 256-colour (38;5) and basic ANSI colours, and all backgrounds, are not faded.
-// Foreground is the colour given to unstyled text and Background is the colour
-// items fade towards. Amount is expected in 0..1 and is not clamped.
+// Fade controls how inactive list items blend toward the background color.
+// Foreground is the base text color, Background is the target color to fade
+// toward, and Amount (0 to 1) controls fade strength. Both Foreground and
+// Background must be non-nil for fading to occur.
 type Fade struct {
 	Foreground color.Color
 	Background color.Color
@@ -32,9 +30,8 @@ func blend(c color.Color, f Fade) (r, g, b int) {
 	return mix(cr, bgR), mix(cg, bgG), mix(cb, bgB)
 }
 
-// Dim returns view with its foreground colours faded according to f. Fading is
-// truecolor only (see Fade), and Amount is not clamped. If either f.Foreground
-// or f.Background is nil, Dim returns view unchanged.
+// Dim returns view with its foreground colors faded according to f.
+// If either f.Foreground or f.Background is nil, returns view unchanged.
 func Dim(view string, f Fade) string {
 	if f.Foreground == nil || f.Background == nil {
 		return view
