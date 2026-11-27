@@ -154,10 +154,9 @@ func (m *Model) renderItem(i int) string {
 	return m.fill(m.styles.Item).Render(view)
 }
 
-func (m *Model) verticalView() string {
+func (m *Model) renderVerticalSections() []string {
 	var sections []string
 	var item string
-
 	remainingSpace := m.height
 
 	item = m.renderActiveItem()
@@ -186,11 +185,16 @@ func (m *Model) verticalView() string {
 			break
 		}
 	}
+
+	return sections
+}
+
+func (m *Model) verticalView() string {
+	sections := m.renderVerticalSections()
 	mainView := lipgloss.JoinVertical(lipgloss.Left, sections...)
 	if m.ScrollBar {
 		return lipgloss.JoinHorizontal(lipgloss.Left, mainView, m.verticalScrollView())
 	}
-
 	return mainView
 }
 
