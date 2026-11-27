@@ -3,6 +3,7 @@ package list
 import (
 	"iter"
 	"slices"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -545,15 +546,16 @@ func (m *Model) ActiveItem() ListItem {
 }
 
 func (m *Model) horizontalScrollView() string {
-	var s string
-	for i := 0; i < m.Len(); i++ {
-		if i == m.ActiveIndex() {
-			s += m.styles.Indicator.Render("●")
+	var s strings.Builder
+	active := m.ActiveIndex()
+	for i := range m.Len() {
+		if i == active {
+			s.WriteString(m.styles.Indicator.Render("●"))
 		} else {
-			s += m.styles.Indicator.Render("○")
+			s.WriteString(m.styles.Indicator.Render("○"))
 		}
 	}
-	return s
+	return s.String()
 }
 
 func (m *Model) verticalScrollView() string {
