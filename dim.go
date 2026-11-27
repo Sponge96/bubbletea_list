@@ -56,6 +56,26 @@ func Dim(view string, f Fade) string {
 	return strings.Join(lines, "\n")
 }
 
+func blendTruecolorParams(parts []string, i int, f Fade) {
+	if i+4 >= len(parts) {
+		return
+	}
+
+	rgb := make([]int, 3)
+	for k := range rgb {
+		v, err := strconv.Atoi(parts[i+2+k])
+		if err != nil {
+			return
+		}
+		rgb[k] = v
+	}
+
+	r, g, b := blend(color.RGBA{R: uint8(rgb[0]), G: uint8(rgb[1]), B: uint8(rgb[2]), A: 255}, f)
+	parts[i+2] = strconv.Itoa(r)
+	parts[i+3] = strconv.Itoa(g)
+	parts[i+4] = strconv.Itoa(b)
+}
+
 func dimParams(params string, f Fade) string {
 	parts := strings.Split(params, ";")
 	for i := 0; i < len(parts); i++ {
@@ -66,21 +86,8 @@ func dimParams(params string, f Fade) string {
 			}
 			switch parts[i+1] {
 			case "2":
-				if i+4 < len(parts) && parts[i] == "38" {
-					rgb := make([]int, 3)
-					ok := true
-					for k := range rgb {
-						v, err := strconv.Atoi(parts[i+2+k])
-						if err != nil {
-							ok = false
-							break
-						}
-						rgb[k] = v
-					}
-					if ok {
-						r, g, b := blend(color.RGBA{R: uint8(rgb[0]), G: uint8(rgb[1]), B: uint8(rgb[2]), A: 255}, f)
-						parts[i+2], parts[i+3], parts[i+4] = strconv.Itoa(r), strconv.Itoa(g), strconv.Itoa(b)
-					}
+				if parts[i] == "38" {
+					blendTruecolorParams(parts, i, f)
 				}
 				i += 4
 			case "5":
