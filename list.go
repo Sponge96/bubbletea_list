@@ -227,17 +227,17 @@ func (m *Model) horizontalView() string {
 		}
 	}
 
-	main_view := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
+	mainView := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
 	if m.Paged {
-		main_view = lipgloss.NewStyle().Height(lipgloss.Height(m.renderActiveItem())).Render(main_view)
+		mainView = lipgloss.NewStyle().Height(lipgloss.Height(m.renderActiveItem())).Render(mainView)
 	} else {
-		main_view = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(main_view)
+		mainView = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(mainView)
 	}
 	if m.ScrollBar {
-		dots := lipgloss.PlaceHorizontal(lipgloss.Width(main_view), lipgloss.Center, m.horizontalScrollView())
-		return lipgloss.JoinVertical(lipgloss.Left, main_view, dots)
+		dots := lipgloss.PlaceHorizontal(lipgloss.Width(mainView), lipgloss.Center, m.horizontalScrollView())
+		return lipgloss.JoinVertical(lipgloss.Left, mainView, dots)
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, main_view)
+	return lipgloss.JoinVertical(lipgloss.Left, mainView)
 }
 
 func (m *Model) tallestItemHeight() int {
