@@ -66,7 +66,7 @@ func TestDimLeavesTheViewAloneWithoutBothColours(t *testing.T) {
 
 func TestAListWithoutAFadeLeavesInactiveItemsBright(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}}, Vertical, 20, 20, Styles{Item: item, Active: item})
+	l := newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}}, Vertical, 20, 20, Styles{Item: item, Active: item})
 	l.SetActiveIndex(0)
 
 	if strings.Contains(l.View(), fadedForeground()) {
@@ -81,11 +81,11 @@ func fadedForeground() string {
 
 func TestAnEmptyVerticalListKeepsItsScrollbarColumn(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
-	full := New([]ListItem{&fillingItem{}}, Vertical, 20, 10, Styles{Item: item, Active: item})
-	full.ScrollBar = true
+	full := newTestList([]ListItem{&fillingItem{}}, Vertical, 20, 10, Styles{Item: item, Active: item})
+	full.SetScrollBar(true)
 	full.SetActiveIndex(0)
-	empty := New([]ListItem{}, Vertical, 20, 10, Styles{Item: item, Active: item})
-	empty.ScrollBar = true
+	empty := newTestList([]ListItem{}, Vertical, 20, 10, Styles{Item: item, Active: item})
+	empty.SetScrollBar(true)
 
 	if got, want := lipgloss.Width(empty.View()), lipgloss.Width(full.View()); got != want {
 		t.Errorf("an empty list should be as wide as a full one (%d), got %d", want, got)
@@ -104,9 +104,9 @@ func TestFillWidthStretchesVerticalItemsToTheListWidth(t *testing.T) {
 
 	for _, scroll := range []bool{true, false} {
 		for _, selecting := range []bool{false, true} {
-			l := New([]ListItem{&textItem{"one"}, &textItem{long}, &textItem{"three"}}, Vertical, 30, 40, Styles{Item: item, Active: item})
-			l.ScrollBar = scroll
-			l.FillWidth = true
+			l := newTestList([]ListItem{&textItem{"one"}, &textItem{long}, &textItem{"three"}}, Vertical, 30, 40, Styles{Item: item, Active: item})
+			l.SetScrollBar(scroll)
+			l.SetFillWidth(true)
 			l.SetActiveIndex(0)
 			if selecting {
 				l.EnableSelectionMode()
@@ -123,11 +123,11 @@ func TestFillWidthStretchesVerticalItemsToTheListWidth(t *testing.T) {
 
 func TestAnEmptyFilledListIsAsWideAsAFullOne(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
-	full := New([]ListItem{&textItem{"one"}}, Vertical, 20, 10, Styles{Item: item, Active: item})
-	empty := New([]ListItem{}, Vertical, 20, 10, Styles{Item: item, Active: item})
+	full := newTestList([]ListItem{&textItem{"one"}}, Vertical, 20, 10, Styles{Item: item, Active: item})
+	empty := newTestList([]ListItem{}, Vertical, 20, 10, Styles{Item: item, Active: item})
 	for _, l := range []*Model{full, empty} {
-		l.ScrollBar = true
-		l.FillWidth = true
+		l.SetScrollBar(true)
+		l.SetFillWidth(true)
 	}
 	full.SetActiveIndex(0)
 
@@ -140,15 +140,15 @@ func TestFillWidthLeavesHorizontalListsAndUnsizedListsAlone(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	want := lipgloss.Width(item.Render("one"))
 
-	horizontal := New([]ListItem{&textItem{"one"}}, Horizontal, 30, 10, Styles{Item: item, Active: item})
-	horizontal.FillWidth = true
+	horizontal := newTestList([]ListItem{&textItem{"one"}}, Horizontal, 30, 10, Styles{Item: item, Active: item})
+	horizontal.SetFillWidth(true)
 	horizontal.SetActiveIndex(0)
 	if got := lipgloss.Width(horizontal.View()); got != want {
 		t.Errorf("a horizontal list keeps its item width %d, got %d", want, got)
 	}
 
-	unsized := New([]ListItem{&textItem{"one"}}, Vertical, 0, 10, Styles{Item: item, Active: item})
-	unsized.FillWidth = true
+	unsized := newTestList([]ListItem{&textItem{"one"}}, Vertical, 0, 10, Styles{Item: item, Active: item})
+	unsized.SetFillWidth(true)
 	unsized.SetActiveIndex(0)
 	if got := lipgloss.Width(unsized.View()); got != want {
 		t.Errorf("a zero-width list keeps its item width %d, got %d", want, got)
@@ -171,8 +171,8 @@ func (t *textItem) View() string           { return t.text }
 func TestOnlyTheActiveAndSelectedItemsAreBright(t *testing.T) {
 	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	bright := lipgloss.NewStyle().Foreground(lipgloss.RGBColor{R: 255, G: 121, B: 198})
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{Item: item, Active: item, Selected: bright})
-	l.Fade = &testFade
+	l := newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{Item: item, Active: item, Selected: bright})
+	l.SetFade(testFade)
 	l.SetActiveIndex(0)
 
 	faded := func(text string) bool {
@@ -217,7 +217,7 @@ func lineWith(t *testing.T, view, text string) string {
 func TestSelectedRowsUseTheSelectedStyle(t *testing.T) {
 	red := lipgloss.NewStyle().Foreground(lipgloss.RGBColor{R: 255, G: 0, B: 0})
 	newList := func() *Model {
-		return New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{Selected: red, SelectedActive: red})
+		return newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{Selected: red, SelectedActive: red})
 	}
 	check := func(name string, l *Model) {
 		view := l.View()
@@ -245,7 +245,7 @@ func TestSelectedRowsUseTheSelectedStyle(t *testing.T) {
 }
 
 func TestTheActiveRowWhileSelectingUsesSelectedActive(t *testing.T) {
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}}, Vertical, 20, 20,
+	l := newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}}, Vertical, 20, 20,
 		Styles{SelectedActive: lipgloss.NewStyle().Border(lipgloss.ThickBorder())})
 	l.SetActiveIndex(0)
 
@@ -262,15 +262,15 @@ func TestIndicatorStyleColoursTheScrollbar(t *testing.T) {
 	red := lipgloss.NewStyle().Foreground(lipgloss.RGBColor{R: 255, G: 0, B: 0})
 	items := func() []ListItem { return []ListItem{&textItem{"one"}, &textItem{"two"}} }
 
-	styled := New(items(), Vertical, 4, 4, Styles{Indicator: red})
-	styled.ScrollBar = true
+	styled := newTestList(items(), Vertical, 4, 4, Styles{Indicator: red})
+	styled.SetScrollBar(true)
 	styled.SetActiveIndex(0)
 	if !strings.Contains(lineWith(t, styled.View(), "┃"), redSGR) {
 		t.Error("the thumb should carry the Indicator colour")
 	}
 
-	plain := New(items(), Vertical, 4, 4, Styles{})
-	plain.ScrollBar = true
+	plain := newTestList(items(), Vertical, 4, 4, Styles{})
+	plain.SetScrollBar(true)
 	plain.SetActiveIndex(0)
 	if strings.Contains(lineWith(t, plain.View(), "┃"), "\x1b") {
 		t.Error("a zero Indicator leaves the thumb unstyled")
@@ -285,7 +285,7 @@ func isText(text string) func(ListItem) bool {
 }
 
 func TestSelectWhereMovesTheCursorToTheFirstMatch(t *testing.T) {
-	l := New([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"x"}, &textItem{"x"}}, Vertical, 20, 20, Styles{})
+	l := newTestList([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"x"}, &textItem{"x"}}, Vertical, 20, 20, Styles{})
 	l.SetActiveIndex(1)
 
 	if !l.SelectWhere(isText("x")) {
@@ -303,7 +303,7 @@ func TestSelectWhereMovesTheCursorToTheFirstMatch(t *testing.T) {
 }
 
 func TestDeleteWhereRemovesOnlyTheFirstMatch(t *testing.T) {
-	l := New([]ListItem{&textItem{"a"}, &textItem{"x"}, &textItem{"b"}, &textItem{"x"}}, Vertical, 20, 20, Styles{})
+	l := newTestList([]ListItem{&textItem{"a"}, &textItem{"x"}, &textItem{"b"}, &textItem{"x"}}, Vertical, 20, 20, Styles{})
 
 	l.DeleteWhere(isText("x"))
 
@@ -317,14 +317,14 @@ func TestDeleteWhereRemovesOnlyTheFirstMatch(t *testing.T) {
 }
 
 func TestDeleteWhereKeepsTheCursorValid(t *testing.T) {
-	l := New([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"c"}}, Vertical, 20, 20, Styles{})
+	l := newTestList([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"c"}}, Vertical, 20, 20, Styles{})
 	l.SetActiveIndex(2)
 	l.DeleteWhere(isText("c"))
 	if l.ActiveIndex() != 1 || l.ActiveItem().(*textItem).text != "b" {
 		t.Errorf("deleting the active last item should move to the new last, got %d", l.ActiveIndex())
 	}
 
-	only := New([]ListItem{&textItem{"a"}}, Vertical, 20, 20, Styles{})
+	only := newTestList([]ListItem{&textItem{"a"}}, Vertical, 20, 20, Styles{})
 	only.SetActiveIndex(0)
 	only.DeleteWhere(isText("a"))
 	if only.ActiveItem() != nil {
@@ -337,8 +337,8 @@ func threeLineItems() []ListItem {
 }
 
 func TestPagerShowsOnlyTheActiveItem(t *testing.T) {
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Horizontal, 30, 10, Styles{})
-	l.Paged = true
+	l := newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Horizontal, 30, 10, Styles{})
+	l.SetPaged(true)
 	l.SetActiveIndex(1)
 
 	view := ansi.Strip(l.View())
@@ -351,8 +351,8 @@ func TestPagerShowsOnlyTheActiveItem(t *testing.T) {
 }
 
 func TestPagerIsAsTallAsTheActiveItem(t *testing.T) {
-	l := New(threeLineItems(), Horizontal, 30, 10, Styles{})
-	l.Paged = true
+	l := newTestList(threeLineItems(), Horizontal, 30, 10, Styles{})
+	l.SetPaged(true)
 
 	for i, want := range []int{1, 3, 2} {
 		l.SetActiveIndex(i)
@@ -363,21 +363,21 @@ func TestPagerIsAsTallAsTheActiveItem(t *testing.T) {
 }
 
 func TestPagerShowsDotsOnlyWithAScrollBar(t *testing.T) {
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Horizontal, 30, 10, Styles{})
-	l.Paged = true
+	l := newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Horizontal, 30, 10, Styles{})
+	l.SetPaged(true)
 	l.SetActiveIndex(0)
 
 	if strings.Contains(ansi.Strip(l.View()), "●○○") {
 		t.Error("no dots without a ScrollBar")
 	}
-	l.ScrollBar = true
+	l.SetScrollBar(true)
 	if !strings.Contains(ansi.Strip(l.View()), "●○○") {
 		t.Errorf("dots expected with a ScrollBar: %q", ansi.Strip(l.View()))
 	}
 }
 
 func TestHorizontalStillShowsNeighbours(t *testing.T) {
-	l := New(threeLineItems(), Horizontal, 30, 10, Styles{})
+	l := newTestList(threeLineItems(), Horizontal, 30, 10, Styles{})
 	l.SetActiveIndex(1)
 
 	view := ansi.Strip(l.View())
@@ -394,8 +394,8 @@ func TestHorizontalStillShowsNeighbours(t *testing.T) {
 
 func TestEmptyListsRenderInEveryOrientation(t *testing.T) {
 	for name, o := range map[string]Orientation{"vertical": Vertical, "horizontal": Horizontal} {
-		l := New([]ListItem{}, o, 20, 5, Styles{})
-		l.ScrollBar = true
+		l := newTestList([]ListItem{}, o, 20, 5, Styles{})
+		l.SetScrollBar(true)
 		got := l.View()
 		if o == Vertical {
 			if lipgloss.Height(got) != 5 {
@@ -419,7 +419,7 @@ func (s *sizeRecorder) SetSize(w, h int) {
 }
 
 func TestViewDoesNotSizeItems(t *testing.T) {
-	l := New(nil, Vertical, 0, 0, Styles{})
+	l := newTestList(nil, Vertical, 0, 0, Styles{})
 	a, b := &sizeRecorder{textItem: textItem{"a"}}, &sizeRecorder{textItem: textItem{"b"}}
 	l.InsertItem(a, 0)
 	l.InsertItem(b, 1)
@@ -436,9 +436,10 @@ func TestViewDoesNotSizeItems(t *testing.T) {
 	}
 }
 
-func TestNewSizesTheItemsItIsGiven(t *testing.T) {
+func TestSetSizeReachesTheItemsGivenToNew(t *testing.T) {
 	a := &sizeRecorder{}
-	New([]ListItem{a}, Vertical, 25, 7, Styles{})
+	l := New([]ListItem{a})
+	l.SetSize(25, 7)
 
 	if a.width != 25 || a.height != 7 {
 		t.Errorf("want (25, 7), got (%d, %d)", a.width, a.height)
@@ -446,7 +447,7 @@ func TestNewSizesTheItemsItIsGiven(t *testing.T) {
 }
 
 func TestSetItemSizesTheReplacementAndKeepsTheCursor(t *testing.T) {
-	l := New([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"c"}}, Vertical, 20, 5, Styles{})
+	l := newTestList([]ListItem{&textItem{"a"}, &textItem{"b"}, &textItem{"c"}}, Vertical, 20, 5, Styles{})
 	l.SetActiveIndex(2)
 	fresh := &sizeRecorder{textItem: textItem{"fresh"}}
 
@@ -464,13 +465,13 @@ func TestSetItemSizesTheReplacementAndKeepsTheCursor(t *testing.T) {
 }
 
 func TestSetItemIgnoresAnOutOfRangeIndex(t *testing.T) {
-	l := New([]ListItem{&textItem{"a"}}, Vertical, 20, 5, Styles{})
+	l := newTestList([]ListItem{&textItem{"a"}}, Vertical, 20, 5, Styles{})
 	fresh := &sizeRecorder{}
 
 	l.SetItem(-1, fresh)
 	l.SetItem(1, fresh)
 
-	if l.ItemsLen() != 1 || l.ItemAt(0).(*textItem).text != "a" {
+	if l.Len() != 1 || l.ItemAt(0).(*textItem).text != "a" {
 		t.Error("the list should be unchanged")
 	}
 	if fresh.calls != 0 {
@@ -485,7 +486,7 @@ func (bareItem) Update(tea.Msg) tea.Cmd { return nil }
 func (bareItem) View() string           { return "bare" }
 
 func TestItemsWithoutSetSizeStillRender(t *testing.T) {
-	l := New([]ListItem{bareItem{}}, Vertical, 20, 5, Styles{})
+	l := newTestList([]ListItem{bareItem{}}, Vertical, 20, 5, Styles{})
 	l.InsertItem(bareItem{}, 1)
 	l.SetItem(0, bareItem{})
 	l.SetSize(30, 6)
@@ -497,7 +498,7 @@ func TestItemsWithoutSetSizeStillRender(t *testing.T) {
 }
 
 func TestSelectAllSelectsEveryItemAndParksTheCursorOnTheLast(t *testing.T) {
-	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{})
+	l := newTestList([]ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}, Vertical, 20, 20, Styles{})
 	l.SetActiveIndex(1)
 
 	l.SelectAll()
@@ -514,7 +515,7 @@ func TestSelectAllSelectsEveryItemAndParksTheCursorOnTheLast(t *testing.T) {
 }
 
 func TestSelectAllOnAnEmptyListDoesNothing(t *testing.T) {
-	l := New(nil, Vertical, 20, 20, Styles{})
+	l := newTestList(nil, Vertical, 20, 20, Styles{})
 
 	l.SelectAll()
 
@@ -524,4 +525,595 @@ func TestSelectAllOnAnEmptyListDoesNothing(t *testing.T) {
 	if l.Selection() != nil {
 		t.Errorf("selection = %v, want nil", l.Selection())
 	}
+}
+
+func textList(names ...string) *Model {
+	items := make([]ListItem, len(names))
+	for i, name := range names {
+		items[i] = &textItem{name}
+	}
+	return newTestList(items, Vertical, 20, 20, Styles{})
+}
+
+func texts(items []ListItem) []string {
+	out := make([]string, len(items))
+	for i, it := range items {
+		out[i] = it.(*textItem).text
+	}
+	return out
+}
+
+func TestClearItemsThenInsertDoesNotKeepAStaleSelection(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.ClearItems()
+	if l.ActiveIndex() != -1 || l.Selecting() || l.Selection() != nil {
+		t.Fatalf("a cleared list has no cursor or selection: %d %v", l.ActiveIndex(), l.Selecting())
+	}
+	l.InsertItem(&textItem{"x"}, 0)
+	if got := texts(l.Selection()); len(got) != 1 || got[0] != "x" || l.Selecting() {
+		t.Errorf("want just the active item and no selection, got %v selecting=%v", got, l.Selecting())
+	}
+}
+
+func TestNewPutsTheCursorOnTheFirstItem(t *testing.T) {
+	if got := textList("a", "b").ActiveIndex(); got != 0 {
+		t.Errorf("a list with items starts on 0, got %d", got)
+	}
+	if got := newTestList(nil, Vertical, 20, 20, Styles{}).ActiveIndex(); got != -1 {
+		t.Errorf("an empty list has no cursor, got %d", got)
+	}
+}
+
+func TestInitLeavesTheCursorAlone(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(1)
+	l.Init()
+	if got := l.ActiveIndex(); got != 1 {
+		t.Errorf("Init must not move the cursor, got %d", got)
+	}
+}
+
+func TestNewCopiesTheSliceItIsGiven(t *testing.T) {
+	original := &textItem{"a"}
+	items := []ListItem{original, &textItem{"b"}}
+	l := newTestList(items, Vertical, 20, 20, Styles{})
+	items[0] = &textItem{"z"}
+	if l.ItemAt(0) != ListItem(original) {
+		t.Error("changing the caller's slice must not change the list")
+	}
+}
+
+func TestDeleteWhereToEmptyLeavesTheCursorAtMinusOne(t *testing.T) {
+	l := textList("a")
+	l.DeleteWhere(isText("a"))
+	if got := l.ActiveIndex(); got != -1 {
+		t.Errorf("an emptied list has no cursor, got %d", got)
+	}
+}
+
+func TestSetActiveIndexWhileSelectingExtendsTheSelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.EnableSelectionMode()
+	l.SetActiveIndex(2)
+	if got := strings.Join(texts(l.Selection()), ","); got != "a,b,c" {
+		t.Errorf("the selection should follow the cursor, got %s", got)
+	}
+}
+
+func TestSelectWhereWhileSelectingExtendsTheSelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.EnableSelectionMode()
+	l.SelectWhere(isText("c"))
+	if got := strings.Join(texts(l.Selection()), ","); got != "a,b,c" {
+		t.Errorf("the selection should follow the cursor, got %s", got)
+	}
+}
+
+func activeText(l *Model) string {
+	if it := l.ActiveItem(); it != nil {
+		return it.(*textItem).text
+	}
+	return ""
+}
+
+func selectedTexts(l *Model) string { return strings.Join(texts(l.Selection()), ",") }
+
+func TestInsertBeforeTheCursorKeepsItOnTheSameItem(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(2)
+	l.InsertItem(&textItem{"x"}, 0)
+	if activeText(l) != "c" || l.ActiveIndex() != 3 {
+		t.Errorf("cursor should follow c to index 3, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestInsertAtTheCursorPushesItDown(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.InsertItem(&textItem{"x"}, 1)
+	if activeText(l) != "b" || l.ActiveIndex() != 2 {
+		t.Errorf("cursor should follow b to index 2, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestInsertAfterTheCursorLeavesItAlone(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(0)
+	l.InsertItem(&textItem{"x"}, 2)
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should stay on 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestInsertIntoAnEmptyListPutsTheCursorOnIt(t *testing.T) {
+	l := textList()
+	l.InsertItem(&textItem{"x"}, 0)
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should be on 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestInsertShiftsASelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.InsertItem(&textItem{"x"}, 0)
+	if got := selectedTexts(l); got != "a,b" || activeText(l) != "b" {
+		t.Errorf("selection should still be a,b with the cursor on b, got %s on %q", got, activeText(l))
+	}
+}
+
+func TestInsertWithAnOutOfRangeIndexIsClamped(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.InsertItem(&textItem{"x"}, -5)
+	if got := strings.Join(texts(l.Items()), ","); got != "x,a,b" || selectedTexts(l) != "a" {
+		t.Errorf("want x,a,b with a selected, got %s with %s selected", got, selectedTexts(l))
+	}
+	l.InsertItem(&textItem{"y"}, 99)
+	if got := strings.Join(texts(l.Items()), ","); got != "x,a,b,y" || selectedTexts(l) != "a" {
+		t.Errorf("want x,a,b,y with a selected, got %s with %s selected", got, selectedTexts(l))
+	}
+}
+
+func TestDeleteBeforeTheCursorKeepsItOnTheSameItem(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(2)
+	l.DeleteWhere(isText("a"))
+	if activeText(l) != "c" || l.ActiveIndex() != 1 {
+		t.Errorf("cursor should follow c to index 1, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestDeleteTheCursorItemMovesFocusToTheNext(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.DeleteWhere(isText("b"))
+	if activeText(l) != "c" || l.ActiveIndex() != 1 {
+		t.Errorf("focus should move to c at index 1, got %q at %d", activeText(l), l.ActiveIndex())
+	}
+}
+
+func TestDeleteInsideASelectionShrinksIt(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(2)
+	l.DeleteWhere(isText("b"))
+	if got := selectedTexts(l); got != "a,c" || activeText(l) != "c" {
+		t.Errorf("selection should be a,c with the cursor on c, got %s on %q", got, activeText(l))
+	}
+}
+
+func TestDeletingTheCursorEndOfASelectionOnlyLeavesSelectedItems(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(2)
+	l.DeleteWhere(isText("c"))
+	if got := selectedTexts(l); got != "a,b" || activeText(l) != "b" {
+		t.Errorf("selection should be a,b with the cursor on b, got %s on %q", got, activeText(l))
+	}
+}
+
+func TestDeletingEverySelectedItemClearsTheSelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.EnableSelectionMode()
+	l.DeleteWhere(isText("b"))
+	if l.Selecting() || activeText(l) != "c" {
+		t.Errorf("selection should be cleared with the cursor on c, got selecting=%v on %q", l.Selecting(), activeText(l))
+	}
+}
+
+func TestDeleteWhereWithNoMatchChangesNothing(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.DeleteWhere(isText("zzz"))
+	if got := strings.Join(texts(l.Items()), ","); got != "a,b,c" || l.ActiveIndex() != 2 || selectedTexts(l) != "b,c" {
+		t.Errorf("nothing should change, got %s cursor %d selection %s", got, l.ActiveIndex(), selectedTexts(l))
+	}
+}
+
+func TestDeleteSelectionRemovesTheRangeAndClearsIt(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SetActiveIndex(1)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.DeleteSelection()
+	if got := strings.Join(texts(l.Items()), ","); got != "a,d" || activeText(l) != "d" || l.Selecting() {
+		t.Errorf("want a,d with the cursor on d and no selection, got %s on %q selecting=%v", got, activeText(l), l.Selecting())
+	}
+}
+
+func TestSetItemsReplacesAndSizesTheItems(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetSize(20, 5)
+	a, b := &sizeRecorder{textItem: textItem{"x"}}, &sizeRecorder{textItem: textItem{"y"}}
+
+	l.SetItems([]ListItem{a, b})
+
+	if l.Len() != 2 || l.ItemAt(0) != ListItem(a) || l.ItemAt(1) != ListItem(b) {
+		t.Fatalf("the list should hold exactly the new items, got %d", l.Len())
+	}
+	if a.width != 20 || a.height != 5 || b.width != 20 || b.height != 5 {
+		t.Errorf("new items should be sized (20, 5), got (%d, %d) and (%d, %d)", a.width, a.height, b.width, b.height)
+	}
+}
+
+func TestSetItemsKeepsTheCursor(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}, &textItem{"z"}})
+	if l.ActiveIndex() != 1 {
+		t.Errorf("cursor should stay on 1, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsClampsTheCursorWhenShorter(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(2)
+	l.SetItems([]ListItem{&textItem{"x"}})
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should clamp to 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsFromEmptyPutsTheCursorOnTheFirstItem(t *testing.T) {
+	l := newTestList(nil, Vertical, 20, 20, Styles{})
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}})
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should be on 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsKeepsASelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}, &textItem{"z"}})
+	if !l.Selecting() || len(l.Selection()) != 2 {
+		t.Errorf("selection of 2 should survive, got selecting=%v len=%d", l.Selecting(), len(l.Selection()))
+	}
+}
+
+func TestSetItemsShrinkingBelowTheSelectionStaysValid(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SelectAll()
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}})
+	if !l.Selecting() || len(l.Selection()) != 2 || l.ActiveIndex() != 1 {
+		t.Errorf("want a valid 2-item selection with the cursor on 1, got selecting=%v len=%d cursor=%d", l.Selecting(), len(l.Selection()), l.ActiveIndex())
+	}
+}
+
+func TestSetItemsWithNothingClearsCursorAndSelection(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.SetItems(nil)
+	if l.ActiveIndex() != -1 || l.Selecting() || l.Selection() != nil {
+		t.Errorf("an empty list has no cursor or selection, got cursor=%d selecting=%v", l.ActiveIndex(), l.Selecting())
+	}
+	l.SetItems([]ListItem{&textItem{"x"}})
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should be on 0 after refilling, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsCopiesTheSlice(t *testing.T) {
+	original := &textItem{"x"}
+	items := []ListItem{original, &textItem{"y"}}
+	l := textList("a")
+	l.SetItems(items)
+	items[0] = &textItem{"z"}
+	if l.ItemAt(0) != ListItem(original) {
+		t.Error("changing the caller's slice must not change the list")
+	}
+}
+
+func TestLenCountsItems(t *testing.T) {
+	if got := textList("a", "b").Len(); got != 2 {
+		t.Errorf("want 2, got %d", got)
+	}
+	if got := newTestList(nil, Vertical, 20, 20, Styles{}).Len(); got != 0 {
+		t.Errorf("want 0, got %d", got)
+	}
+}
+
+func TestAllYieldsIndexAndItemInOrder(t *testing.T) {
+	var got []string
+	for i, it := range textList("a", "b", "c").All() {
+		got = append(got, fmt.Sprintf("%d%s", i, it.(*textItem).text))
+	}
+	if strings.Join(got, ",") != "0a,1b,2c" {
+		t.Errorf("want 0a,1b,2c, got %v", got)
+	}
+}
+
+func TestAllStopsWhenTheLoopBreaks(t *testing.T) {
+	visited := 0
+	for range textList("a", "b", "c").All() {
+		visited++
+		break
+	}
+	if visited != 1 {
+		t.Errorf("break should stop after one item, visited %d", visited)
+	}
+	for range textList().All() {
+		t.Error("an empty list yields nothing")
+	}
+}
+
+func TestAllAllowsSetItemDuringIteration(t *testing.T) {
+	l := textList("a", "b", "c")
+	for i := range l.All() {
+		l.SetItem(i, &textItem{"z"})
+	}
+	if got := strings.Join(texts(l.Items()), ","); got != "z,z,z" {
+		t.Errorf("want z,z,z, got %s", got)
+	}
+}
+
+type msgRecorder struct{ got []tea.Msg }
+
+func (r *msgRecorder) Init() tea.Cmd { return nil }
+func (r *msgRecorder) View() string  { return "recorder" }
+func (r *msgRecorder) Update(msg tea.Msg) tea.Cmd {
+	r.got = append(r.got, msg)
+	return func() tea.Msg { return struct{}{} }
+}
+
+func recorderList() (*Model, []*msgRecorder) {
+	recorders := []*msgRecorder{{}, {}, {}}
+	items := make([]ListItem, len(recorders))
+	for i, r := range recorders {
+		items[i] = r
+	}
+	l := newTestList(items, Vertical, 20, 20, Styles{})
+	l.SetActiveIndex(1)
+	return l, recorders
+}
+
+func TestKeyPressesOnlyReachTheActiveItem(t *testing.T) {
+	l, rs := recorderList()
+	msg := tea.KeyPressMsg(tea.Key{Code: 'a'})
+
+	if cmd := l.Update(msg); cmd == nil {
+		t.Error("the active item's command should be returned")
+	}
+	if len(rs[0].got) != 0 || len(rs[2].got) != 0 {
+		t.Errorf("inactive items must not see key presses: %v %v", rs[0].got, rs[2].got)
+	}
+	if len(rs[1].got) != 1 || rs[1].got[0] != tea.Msg(msg) {
+		t.Errorf("the active item should get the key press, got %v", rs[1].got)
+	}
+}
+
+func TestKeyReleasesAndPastesOnlyReachTheActiveItem(t *testing.T) {
+	for name, msg := range map[string]tea.Msg{
+		"key release": tea.KeyReleaseMsg(tea.Key{Code: 'a'}),
+		"paste":       tea.PasteMsg{Content: "pasted"},
+	} {
+		l, rs := recorderList()
+		if cmd := l.Update(msg); cmd == nil {
+			t.Errorf("%s: the active item's command should be returned", name)
+		}
+		if len(rs[0].got) != 0 || len(rs[2].got) != 0 {
+			t.Errorf("%s: inactive items must not see it: %v %v", name, rs[0].got, rs[2].got)
+		}
+		if len(rs[1].got) != 1 || rs[1].got[0] != msg {
+			t.Errorf("%s: the active item should get it, got %v", name, rs[1].got)
+		}
+	}
+}
+
+func TestOtherMessagesReachEveryItem(t *testing.T) {
+	l, rs := recorderList()
+	msg := struct{ n int }{1}
+
+	l.Update(msg)
+
+	for i, r := range rs {
+		if len(r.got) != 1 || r.got[0] != tea.Msg(msg) {
+			t.Errorf("item %d should get the message, got %v", i, r.got)
+		}
+	}
+}
+
+func TestMouseMessagesStayBroadcast(t *testing.T) {
+	l, rs := recorderList()
+	msg := tea.MouseClickMsg(tea.Mouse{X: 1, Y: 1, Button: tea.MouseLeft})
+
+	l.Update(msg)
+
+	for i, r := range rs {
+		if len(r.got) != 1 || r.got[0] != tea.Msg(msg) {
+			t.Errorf("item %d should get the mouse message, got %v", i, r.got)
+		}
+	}
+}
+
+func TestKeysToAnEmptyListAreDropped(t *testing.T) {
+	l := newTestList(nil, Vertical, 20, 20, Styles{})
+	for name, msg := range map[string]tea.Msg{
+		"key press":   tea.KeyPressMsg(tea.Key{Code: 'a'}),
+		"key release": tea.KeyReleaseMsg(tea.Key{Code: 'a'}),
+		"paste":       tea.PasteMsg{Content: "pasted"},
+	} {
+		if cmd := l.Update(msg); cmd != nil {
+			t.Errorf("%s: an empty list has nowhere to send it, got a command", name)
+		}
+	}
+}
+
+func BenchmarkView(b *testing.B) {
+	items := make([]ListItem, 50)
+	for i := range items {
+		items[i] = &textItem{fmt.Sprintf("item %d", i)}
+	}
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	l := newTestList(items, Vertical, 20, 40, Styles{Item: item, Active: item})
+	l.SetFade(testFade)
+	l.SetScrollBar(true)
+	l.SetActiveIndex(10)
+
+	b.ReportAllocs()
+	for b.Loop() {
+		l.View()
+	}
+}
+
+func optionTestItems() []ListItem {
+	return []ListItem{&textItem{"one"}, &textItem{"two"}, &textItem{"three"}}
+}
+
+func sizedList(opts ...Option) *Model {
+	l := New(optionTestItems(), opts...)
+	l.SetSize(30, 20)
+	return l
+}
+
+func TestNewDefaults(t *testing.T) {
+	l := New(nil)
+
+	if l.Orientation() != Vertical || l.Width() != 0 || l.Height() != 0 {
+		t.Errorf("want vertical 0x0, got %v %dx%d", l.Orientation(), l.Width(), l.Height())
+	}
+	if l.ScrollBar() || l.FillWidth() || l.Paged() {
+		t.Error("scrollbar, fill width and paged all default to off")
+	}
+	if _, ok := l.Fade(); ok {
+		t.Error("a list has no fade by default")
+	}
+}
+
+func TestEachOptionMatchesItsSetter(t *testing.T) {
+	thick := Styles{Active: lipgloss.NewStyle().Border(lipgloss.ThickBorder())}
+	cases := []struct {
+		name string
+		opt  Option
+		set  func(*Model)
+		get  func(*Model) any
+	}{
+		{"scrollbar", WithScrollBar(true), func(l *Model) { l.SetScrollBar(true) }, func(l *Model) any { return l.ScrollBar() }},
+		{"fill width", WithFillWidth(true), func(l *Model) { l.SetFillWidth(true) }, func(l *Model) any { return l.FillWidth() }},
+		{"paged", WithPaged(true), func(l *Model) { l.SetPaged(true) }, func(l *Model) any { return l.Paged() }},
+		{"styles", WithStyles(thick), func(l *Model) { l.SetStyles(thick) }, func(l *Model) any { return l.Styles().Active.Render("x") }},
+		{"fade", WithFade(testFade), func(l *Model) { l.SetFade(testFade) }, func(l *Model) any {
+			f, ok := l.Fade()
+			return [2]any{f, ok}
+		}},
+	}
+	for _, c := range cases {
+		viaOption := sizedList(c.opt)
+		viaSetter := sizedList()
+		c.set(viaSetter)
+
+		if c.get(viaOption) != c.get(viaSetter) {
+			t.Errorf("%s: getters differ: %v vs %v", c.name, c.get(viaOption), c.get(viaSetter))
+		}
+		if viaOption.View() != viaSetter.View() {
+			t.Errorf("%s: views differ", c.name)
+		}
+		if viaOption.View() == sizedList().View() && c.name != "fade" {
+			t.Errorf("%s: the option should change the view", c.name)
+		}
+	}
+}
+
+func TestOptionsApplyInAnyOrderAndLastWins(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	s := Styles{Item: item, Active: item}
+
+	a := sizedList(WithFade(testFade), WithStyles(s))
+	b := sizedList(WithStyles(s), WithFade(testFade))
+
+	if a.View() != b.View() {
+		t.Error("option order must not change the result")
+	}
+	if !strings.Contains(a.View(), fadedForeground()) {
+		t.Error("the fade should be in effect")
+	}
+	if New(nil, WithScrollBar(true), WithScrollBar(false)).ScrollBar() {
+		t.Error("the last option should win")
+	}
+}
+
+func TestSetFadeCopiesTheValue(t *testing.T) {
+	l := New(nil)
+	f := testFade
+	l.SetFade(f)
+	f.Amount = 0
+
+	if got, ok := l.Fade(); !ok || got.Amount != 0.6 {
+		t.Errorf("the list should keep its own copy, got %v %v", got.Amount, ok)
+	}
+}
+
+func TestClearFadeAfterWithFade(t *testing.T) {
+	item := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}}, WithFade(testFade), WithStyles(Styles{Item: item, Active: item}))
+	l.SetSize(20, 20)
+	l.SetActiveIndex(0)
+	if !strings.Contains(l.View(), fadedForeground()) {
+		t.Fatal("the fade should be in effect before it is cleared")
+	}
+
+	l.ClearFade()
+
+	if _, ok := l.Fade(); ok {
+		t.Error("Fade should report no fade after ClearFade")
+	}
+	if strings.Contains(l.View(), fadedForeground()) {
+		t.Error("no item should be faded after ClearFade")
+	}
+}
+
+func TestSetStylesChangesTheRendering(t *testing.T) {
+	l := New([]ListItem{&textItem{"one"}, &textItem{"two"}})
+	l.SetSize(20, 20)
+	if strings.Contains(l.View(), "┏") {
+		t.Fatal("the zero Styles has no border")
+	}
+
+	l.SetStyles(Styles{Active: lipgloss.NewStyle().Border(lipgloss.ThickBorder())})
+
+	if !strings.Contains(l.View(), "┏") {
+		t.Error("the active row should now have a thick border")
+	}
+}
+
+func newTestList(items []ListItem, o Orientation, w, h int, s Styles) *Model {
+	l := New(items, WithOrientation(o), WithStyles(s))
+	l.SetSize(w, h)
+	return l
 }
