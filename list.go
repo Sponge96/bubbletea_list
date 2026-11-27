@@ -198,10 +198,9 @@ func (m *Model) verticalView() string {
 	return mainView
 }
 
-func (m *Model) horizontalView() string {
+func (m *Model) renderHorizontalSections() []string {
 	var sections []string
 	var item string
-
 	remainingSpace := m.width
 
 	item = m.renderActiveItem()
@@ -231,6 +230,11 @@ func (m *Model) horizontalView() string {
 		}
 	}
 
+	return sections
+}
+
+func (m *Model) horizontalView() string {
+	sections := m.renderHorizontalSections()
 	mainView := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
 	if m.Paged {
 		mainView = lipgloss.NewStyle().Height(lipgloss.Height(m.renderActiveItem())).Render(mainView)
