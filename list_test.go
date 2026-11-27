@@ -470,7 +470,7 @@ func TestSetItemIgnoresAnOutOfRangeIndex(t *testing.T) {
 	l.SetItem(-1, fresh)
 	l.SetItem(1, fresh)
 
-	if l.ItemsLen() != 1 || l.ItemAt(0).(*textItem).text != "a" {
+	if l.Len() != 1 || l.ItemAt(0).(*textItem).text != "a" {
 		t.Error("the list should be unchanged")
 	}
 	if fresh.calls != 0 {
@@ -759,8 +759,8 @@ func TestSetItemsReplacesAndSizesTheItems(t *testing.T) {
 
 	l.SetItems([]ListItem{a, b})
 
-	if l.ItemsLen() != 2 || l.ItemAt(0) != ListItem(a) || l.ItemAt(1) != ListItem(b) {
-		t.Fatalf("the list should hold exactly the new items, got %d", l.ItemsLen())
+	if l.Len() != 2 || l.ItemAt(0) != ListItem(a) || l.ItemAt(1) != ListItem(b) {
+		t.Fatalf("the list should hold exactly the new items, got %d", l.Len())
 	}
 	if a.width != 20 || a.height != 5 || b.width != 20 || b.height != 5 {
 		t.Errorf("new items should be sized (20, 5), got (%d, %d) and (%d, %d)", a.width, a.height, b.width, b.height)
@@ -836,5 +836,48 @@ func TestSetItemsCopiesTheSlice(t *testing.T) {
 	items[0] = &textItem{"z"}
 	if l.ItemAt(0) != ListItem(original) {
 		t.Error("changing the caller's slice must not change the list")
+	}
+}
+
+func TestLenCountsItems(t *testing.T) {
+	if got := textList("a", "b").Len(); got != 2 {
+		t.Errorf("want 2, got %d", got)
+	}
+	if got := New(nil, Vertical, 20, 20, Styles{}).Len(); got != 0 {
+		t.Errorf("want 0, got %d", got)
+	}
+}
+
+func TestAllYieldsIndexAndItemInOrder(t *testing.T) {
+	var got []string
+	for i, it := range textList("a", "b", "c").All() {
+		got = append(got, fmt.Sprintf("%d%s", i, it.(*textItem).text))
+	}
+	if strings.Join(got, ",") != "0a,1b,2c" {
+		t.Errorf("want 0a,1b,2c, got %v", got)
+	}
+}
+
+func TestAllStopsWhenTheLoopBreaks(t *testing.T) {
+	visited := 0
+	for range textList("a", "b", "c").All() {
+		visited++
+		break
+	}
+	if visited != 1 {
+		t.Errorf("break should stop after one item, visited %d", visited)
+	}
+	for range textList().All() {
+		t.Error("an empty list yields nothing")
+	}
+}
+
+func TestAllAllowsSetItemDuringIteration(t *testing.T) {
+	l := textList("a", "b", "c")
+	for i := range l.All() {
+		l.SetItem(i, &textItem{"z"})
+	}
+	if got := strings.Join(texts(l.Items()), ","); got != "z,z,z" {
+		t.Errorf("want z,z,z, got %s", got)
 	}
 }

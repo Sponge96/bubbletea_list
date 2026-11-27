@@ -1,9 +1,11 @@
 package list
 
 import (
+	"iter"
+	"slices"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"slices"
 )
 
 type Orientation int
@@ -70,7 +72,7 @@ func (m *Model) normalize() {
 	}
 	last := len(m.items) - 1
 	m.activeIndex = min(max(m.activeIndex, 0), last)
-	if m.selecting() {
+	if m.Selecting() {
 		m.selectionStart = min(max(m.selectionStart, 0), last)
 	}
 }
@@ -92,6 +94,18 @@ func (m *Model) SetItems(items []ListItem) {
 		m.sizeItem(item)
 	}
 	m.normalize()
+}
+
+// All iterates the list's items in order without copying them. SetItem during
+// iteration is fine; inserting or deleting items during iteration is undefined.
+func (m *Model) All() iter.Seq2[int, ListItem] {
+	return func(yield func(int, ListItem) bool) {
+		for i, item := range m.items {
+			if !yield(i, item) {
+				return
+			}
+		}
+	}
 }
 
 func (m *Model) ItemAt(i int) ListItem {
@@ -166,14 +180,14 @@ func (m *Model) renderActiveItem() string {
 	if !m.hasValidActiveIndex() {
 		return ""
 	}
-	if m.selecting() {
+	if m.Selecting() {
 		return m.fill(m.styles.SelectedActive).Render(m.items[m.activeIndex].View())
 	}
 	return m.fill(m.styles.Active).Render(m.items[m.activeIndex].View())
 }
 
 func (m *Model) renderItem(i int) string {
-	if m.selecting() {
+	if m.Selecting() {
 		if lo, hi := m.selectionRange(); lo <= i && i <= hi {
 			return m.fill(m.styles.Selected).Render(m.items[i].View())
 		}
@@ -267,11 +281,11 @@ func (m *Model) tallestItemHeight() int {
 }
 
 func (m *Model) IncrementItem(step int) {
-	len := len(m.items)
-	if len == 0 {
+	n := len(m.items)
+	if n == 0 {
 		return
 	}
-	if m.activeIndex+step >= len {
+	if m.activeIndex+step >= n {
 		m.GotoEndItem()
 		return
 	}
@@ -321,7 +335,7 @@ func (m *Model) InsertItem(item ListItem, index int) {
 	if m.activeIndex >= index {
 		m.activeIndex++
 	}
-	if m.selecting() && m.selectionStart >= index {
+	if m.Selecting() && m.selectionStart >= index {
 		m.selectionStart++
 	}
 	m.normalize()
@@ -336,10 +350,6 @@ func (m *Model) SetItem(index int, item ListItem) {
 }
 
 func (m *Model) Selecting() bool {
-	return m.selecting()
-}
-
-func (m *Model) selecting() bool {
 	return m.selectionStart >= 0
 }
 
@@ -383,7 +393,7 @@ func (m *Model) Selection() []ListItem {
 	}
 
 	var selection []ListItem
-	if !m.selecting() {
+	if !m.Selecting() {
 		selection = append(selection, m.ActiveItem())
 		return selection
 	}
@@ -396,7 +406,7 @@ func (m *Model) DeleteSelection() {
 	if len(m.items) == 0 || !m.hasValidActiveIndex() {
 		return
 	}
-	if m.selecting() {
+	if m.Selecting() {
 		lo, hi := m.selectionRange()
 		m.items = slices.Delete(m.items, lo, hi+1)
 		m.activeIndex = lo
@@ -423,7 +433,7 @@ func (m *Model) SelectWhere(match func(ListItem) bool) bool {
 	return false
 }
 
-func (m *Model) ItemsLen() int {
+func (m *Model) Len() int {
 	return len(m.items)
 }
 
@@ -449,7 +459,7 @@ func (m *Model) DeleteWhere(match func(ListItem) bool) {
 		return
 	}
 	m.items = slices.Delete(m.items, d, d+1)
-	if !m.selecting() {
+	if !m.Selecting() {
 		if d < m.activeIndex {
 			m.activeIndex--
 		}
@@ -487,7 +497,7 @@ func (m *Model) ActiveItem() ListItem {
 
 func (m *Model) horizontalScrollView() string {
 	var s string
-	for i := 0; i < m.ItemsLen(); i++ {
+	for i := 0; i < m.Len(); i++ {
 		if i == m.ActiveIndex() {
 			s += m.styles.Indicator.Render("●")
 		} else {
@@ -499,9 +509,9 @@ func (m *Model) horizontalScrollView() string {
 
 func (m *Model) verticalScrollView() string {
 	indicatorHeight, indicatorPosition := 0, 0
-	if m.ItemsLen() > 0 {
-		indicatorHeight = max(1, m.height/m.ItemsLen())
-		indicatorPosition = (m.ActiveIndex() * m.height) / m.ItemsLen()
+	if m.Len() > 0 {
+		indicatorHeight = max(1, m.height/m.Len())
+		indicatorPosition = (m.ActiveIndex() * m.height) / m.Len()
 	}
 
 	sections := make([]string, max(0, m.height))
@@ -513,11 +523,4 @@ func (m *Model) verticalScrollView() string {
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
