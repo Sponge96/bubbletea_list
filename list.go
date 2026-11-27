@@ -491,7 +491,7 @@ func (m *Model) ActiveItem() ListItem {
 
 func (m *Model) horizontalScrollView() string {
 	var s string
-	for i := 0; i < m.itemsLen(); i++ {
+	for i := 0; i < m.ItemsLen(); i++ {
 		if i == m.ActiveIndex() {
 			s += m.styles.Indicator.Render("●")
 		} else {
@@ -503,9 +503,9 @@ func (m *Model) horizontalScrollView() string {
 
 func (m *Model) verticalScrollView() string {
 	indicatorHeight, indicatorPosition := 0, 0
-	if m.itemsLen() > 0 {
-		indicatorHeight = max(1, m.height/m.itemsLen())
-		indicatorPosition = (m.ActiveIndex() * m.height) / m.itemsLen()
+	if m.ItemsLen() > 0 {
+		indicatorHeight = max(1, m.height/m.ItemsLen())
+		indicatorPosition = (m.ActiveIndex() * m.height) / m.ItemsLen()
 	}
 
 	sections := make([]string, max(0, m.height))
