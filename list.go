@@ -173,7 +173,7 @@ func (m *Model) renderVerticalSections() []string {
 	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
-		if itemSize < remainingSpace {
+		if itemSize <= remainingSpace {
 			remainingSpace -= itemSize
 			sections = slices.Insert(sections, 0, item)
 		} else {
@@ -184,7 +184,7 @@ func (m *Model) renderVerticalSections() []string {
 	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Height(item)
-		if itemSize < remainingSpace {
+		if itemSize <= remainingSpace {
 			remainingSpace -= itemSize
 			sections = append(sections, item)
 		} else {
@@ -217,7 +217,7 @@ func (m *Model) renderHorizontalSections() []string {
 	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
-		if itemSize < remainingSpace {
+		if itemSize <= remainingSpace {
 			remainingSpace -= itemSize
 			sections = slices.Insert(sections, 0, item)
 		} else {
@@ -228,7 +228,7 @@ func (m *Model) renderHorizontalSections() []string {
 	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
 		item = m.renderItem(i)
 		itemSize := lipgloss.Width(item)
-		if itemSize < remainingSpace {
+		if itemSize <= remainingSpace {
 			remainingSpace -= itemSize
 			sections = append(sections, item)
 		} else {
