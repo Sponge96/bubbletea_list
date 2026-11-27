@@ -751,3 +751,90 @@ func TestDeleteSelectionRemovesTheRangeAndClearsIt(t *testing.T) {
 		t.Errorf("want a,d with the cursor on d and no selection, got %s on %q selecting=%v", got, activeText(l), l.Selecting())
 	}
 }
+
+func TestSetItemsReplacesAndSizesTheItems(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetSize(20, 5)
+	a, b := &sizeRecorder{textItem: textItem{"x"}}, &sizeRecorder{textItem: textItem{"y"}}
+
+	l.SetItems([]ListItem{a, b})
+
+	if l.ItemsLen() != 2 || l.ItemAt(0) != ListItem(a) || l.ItemAt(1) != ListItem(b) {
+		t.Fatalf("the list should hold exactly the new items, got %d", l.ItemsLen())
+	}
+	if a.width != 20 || a.height != 5 || b.width != 20 || b.height != 5 {
+		t.Errorf("new items should be sized (20, 5), got (%d, %d) and (%d, %d)", a.width, a.height, b.width, b.height)
+	}
+}
+
+func TestSetItemsKeepsTheCursor(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(1)
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}, &textItem{"z"}})
+	if l.ActiveIndex() != 1 {
+		t.Errorf("cursor should stay on 1, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsClampsTheCursorWhenShorter(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(2)
+	l.SetItems([]ListItem{&textItem{"x"}})
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should clamp to 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsFromEmptyPutsTheCursorOnTheFirstItem(t *testing.T) {
+	l := New(nil, Vertical, 20, 20, Styles{})
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}})
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should be on 0, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsKeepsASelection(t *testing.T) {
+	l := textList("a", "b", "c")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}, &textItem{"z"}})
+	if !l.Selecting() || len(l.Selection()) != 2 {
+		t.Errorf("selection of 2 should survive, got selecting=%v len=%d", l.Selecting(), len(l.Selection()))
+	}
+}
+
+func TestSetItemsShrinkingBelowTheSelectionStaysValid(t *testing.T) {
+	l := textList("a", "b", "c", "d")
+	l.SelectAll()
+	l.SetItems([]ListItem{&textItem{"x"}, &textItem{"y"}})
+	if !l.Selecting() || len(l.Selection()) != 2 || l.ActiveIndex() != 1 {
+		t.Errorf("want a valid 2-item selection with the cursor on 1, got selecting=%v len=%d cursor=%d", l.Selecting(), len(l.Selection()), l.ActiveIndex())
+	}
+}
+
+func TestSetItemsWithNothingClearsCursorAndSelection(t *testing.T) {
+	l := textList("a", "b")
+	l.SetActiveIndex(0)
+	l.EnableSelectionMode()
+	l.IncrementItem(1)
+	l.SetItems(nil)
+	if l.ActiveIndex() != -1 || l.Selecting() || l.Selection() != nil {
+		t.Errorf("an empty list has no cursor or selection, got cursor=%d selecting=%v", l.ActiveIndex(), l.Selecting())
+	}
+	l.SetItems([]ListItem{&textItem{"x"}})
+	if l.ActiveIndex() != 0 {
+		t.Errorf("cursor should be on 0 after refilling, got %d", l.ActiveIndex())
+	}
+}
+
+func TestSetItemsCopiesTheSlice(t *testing.T) {
+	original := &textItem{"x"}
+	items := []ListItem{original, &textItem{"y"}}
+	l := textList("a")
+	l.SetItems(items)
+	items[0] = &textItem{"z"}
+	if l.ItemAt(0) != ListItem(original) {
+		t.Error("changing the caller's slice must not change the list")
+	}
+}

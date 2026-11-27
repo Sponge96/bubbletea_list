@@ -83,6 +83,17 @@ func (m *Model) Items() []ListItem {
 	return slices.Clone(m.items)
 }
 
+// SetItems replaces the list's items and is the way to rebuild a list while
+// keeping the user's position: the cursor and any selection are kept, clamped
+// to the new length.
+func (m *Model) SetItems(items []ListItem) {
+	m.items = slices.Clone(items)
+	for _, item := range m.items {
+		m.sizeItem(item)
+	}
+	m.normalize()
+}
+
 func (m *Model) ItemAt(i int) ListItem {
 	if i < 0 || i >= len(m.items) {
 		return nil
