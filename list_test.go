@@ -881,3 +881,95 @@ func TestAllAllowsSetItemDuringIteration(t *testing.T) {
 		t.Errorf("want z,z,z, got %s", got)
 	}
 }
+
+type msgRecorder struct{ got []tea.Msg }
+
+func (r *msgRecorder) Init() tea.Cmd { return nil }
+func (r *msgRecorder) View() string  { return "recorder" }
+func (r *msgRecorder) Update(msg tea.Msg) tea.Cmd {
+	r.got = append(r.got, msg)
+	return func() tea.Msg { return struct{}{} }
+}
+
+func recorderList() (*Model, []*msgRecorder) {
+	recorders := []*msgRecorder{{}, {}, {}}
+	items := make([]ListItem, len(recorders))
+	for i, r := range recorders {
+		items[i] = r
+	}
+	l := New(items, Vertical, 20, 20, Styles{})
+	l.SetActiveIndex(1)
+	return l, recorders
+}
+
+func TestKeyPressesOnlyReachTheActiveItem(t *testing.T) {
+	l, rs := recorderList()
+	msg := tea.KeyPressMsg(tea.Key{Code: 'a'})
+
+	if cmd := l.Update(msg); cmd == nil {
+		t.Error("the active item's command should be returned")
+	}
+	if len(rs[0].got) != 0 || len(rs[2].got) != 0 {
+		t.Errorf("inactive items must not see key presses: %v %v", rs[0].got, rs[2].got)
+	}
+	if len(rs[1].got) != 1 || rs[1].got[0] != tea.Msg(msg) {
+		t.Errorf("the active item should get the key press, got %v", rs[1].got)
+	}
+}
+
+func TestKeyReleasesAndPastesOnlyReachTheActiveItem(t *testing.T) {
+	for name, msg := range map[string]tea.Msg{
+		"key release": tea.KeyReleaseMsg(tea.Key{Code: 'a'}),
+		"paste":       tea.PasteMsg{Content: "pasted"},
+	} {
+		l, rs := recorderList()
+		if cmd := l.Update(msg); cmd == nil {
+			t.Errorf("%s: the active item's command should be returned", name)
+		}
+		if len(rs[0].got) != 0 || len(rs[2].got) != 0 {
+			t.Errorf("%s: inactive items must not see it: %v %v", name, rs[0].got, rs[2].got)
+		}
+		if len(rs[1].got) != 1 || rs[1].got[0] != msg {
+			t.Errorf("%s: the active item should get it, got %v", name, rs[1].got)
+		}
+	}
+}
+
+func TestOtherMessagesReachEveryItem(t *testing.T) {
+	l, rs := recorderList()
+	msg := struct{ n int }{1}
+
+	l.Update(msg)
+
+	for i, r := range rs {
+		if len(r.got) != 1 || r.got[0] != tea.Msg(msg) {
+			t.Errorf("item %d should get the message, got %v", i, r.got)
+		}
+	}
+}
+
+func TestMouseMessagesStayBroadcast(t *testing.T) {
+	l, rs := recorderList()
+	msg := tea.MouseClickMsg(tea.Mouse{X: 1, Y: 1, Button: tea.MouseLeft})
+
+	l.Update(msg)
+
+	for i, r := range rs {
+		if len(r.got) != 1 || r.got[0] != tea.Msg(msg) {
+			t.Errorf("item %d should get the mouse message, got %v", i, r.got)
+		}
+	}
+}
+
+func TestKeysToAnEmptyListAreDropped(t *testing.T) {
+	l := New(nil, Vertical, 20, 20, Styles{})
+	for name, msg := range map[string]tea.Msg{
+		"key press":   tea.KeyPressMsg(tea.Key{Code: 'a'}),
+		"key release": tea.KeyReleaseMsg(tea.Key{Code: 'a'}),
+		"paste":       tea.PasteMsg{Content: "pasted"},
+	} {
+		if cmd := l.Update(msg); cmd != nil {
+			t.Errorf("%s: an empty list has nowhere to send it, got a command", name)
+		}
+	}
+}

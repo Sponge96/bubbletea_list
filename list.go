@@ -129,7 +129,19 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+// Update sends key and paste messages to the active item only, so inactive
+// items never receive keystrokes, and every other message to all items. Mouse
+// messages stay broadcast because the list has no hit-testing to tell which
+// item was clicked.
 func (m *Model) Update(msg tea.Msg) tea.Cmd {
+	switch msg.(type) {
+	case tea.KeyMsg, tea.PasteMsg:
+		if item := m.ActiveItem(); item != nil {
+			return item.Update(msg)
+		}
+		return nil
+	}
+
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 	for _, item := range m.items {
