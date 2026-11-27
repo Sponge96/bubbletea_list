@@ -160,19 +160,19 @@ func (m *Model) renderItem(i int) string {
 	return m.fill(m.styles.Item).Render(view)
 }
 
-func (m *Model) renderVerticalSections() []string {
+func (m *Model) renderSections(maxSize int, sizeFunc func(string) int) []string {
 	var sections []string
 	var item string
-	remainingSpace := m.height
+	remainingSpace := maxSize
 
 	item = m.renderActiveItem()
-	itemSize := lipgloss.Height(item)
+	itemSize := sizeFunc(item)
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
 	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
 		item = m.renderItem(i)
-		itemSize := lipgloss.Height(item)
+		itemSize := sizeFunc(item)
 		if itemSize <= remainingSpace {
 			remainingSpace -= itemSize
 			sections = slices.Insert(sections, 0, item)
@@ -183,7 +183,7 @@ func (m *Model) renderVerticalSections() []string {
 
 	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
 		item = m.renderItem(i)
-		itemSize := lipgloss.Height(item)
+		itemSize := sizeFunc(item)
 		if itemSize <= remainingSpace {
 			remainingSpace -= itemSize
 			sections = append(sections, item)
@@ -193,6 +193,10 @@ func (m *Model) renderVerticalSections() []string {
 	}
 
 	return sections
+}
+
+func (m *Model) renderVerticalSections() []string {
+	return m.renderSections(m.height, lipgloss.Height)
 }
 
 func (m *Model) verticalView() string {
@@ -205,38 +209,7 @@ func (m *Model) verticalView() string {
 }
 
 func (m *Model) renderHorizontalSections() []string {
-	var sections []string
-	var item string
-	remainingSpace := m.width
-
-	item = m.renderActiveItem()
-	itemSize := lipgloss.Width(item)
-	remainingSpace -= itemSize
-	sections = append(sections, item)
-
-	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
-		item = m.renderItem(i)
-		itemSize := lipgloss.Width(item)
-		if itemSize <= remainingSpace {
-			remainingSpace -= itemSize
-			sections = slices.Insert(sections, 0, item)
-		} else {
-			break
-		}
-	}
-
-	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
-		item = m.renderItem(i)
-		itemSize := lipgloss.Width(item)
-		if itemSize <= remainingSpace {
-			remainingSpace -= itemSize
-			sections = append(sections, item)
-		} else {
-			break
-		}
-	}
-
-	return sections
+	return m.renderSections(m.width, lipgloss.Width)
 }
 
 func (m *Model) horizontalView() string {
