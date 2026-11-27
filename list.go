@@ -59,8 +59,8 @@ func WithScrollBar(on bool) Option         { return func(m *Model) { m.SetScroll
 func WithFillWidth(on bool) Option         { return func(m *Model) { m.SetFillWidth(on) } }
 func WithPaged(on bool) Option             { return func(m *Model) { m.SetPaged(on) } }
 
-// New returns a list of items. It defaults to a vertical list with zero Styles,
-// no fade and size 0x0; use SetSize to size it.
+// New defaults to a vertical list with zero Styles, no fade and size 0x0; use
+// SetSize to size it.
 func New(items []ListItem, opts ...Option) *Model {
 	m := &Model{
 		items:          slices.Clone(items),
@@ -481,13 +481,11 @@ func (m *Model) Paged() bool      { return m.paged }
 func (m *Model) SetStyles(s Styles) { m.styles = s }
 func (m *Model) Styles() Styles     { return m.styles }
 
-// SetFade makes inactive items fade according to f. The list keeps its own copy.
+// SetFade makes inactive items fade according to f.
 func (m *Model) SetFade(f Fade) { m.fade = &f }
 
-// ClearFade turns fading off.
 func (m *Model) ClearFade() { m.fade = nil }
 
-// Fade returns the list's fade and whether fading is on.
 func (m *Model) Fade() (Fade, bool) {
 	if m.fade == nil {
 		return Fade{}, false
@@ -500,9 +498,10 @@ func (m *Model) hasValidActiveIndex() bool {
 }
 
 // DeleteWhere removes only the first item for which match returns true. The
-// cursor and any selection keep following the same items; if the cursor's own
-// item goes, focus moves to the item after it. A selection whose items are all
-// deleted is cleared.
+// cursor and any selection keep following the same items. If the cursor's own
+// item goes, focus moves to the item after it, or the one before it when the
+// cursor was at the end of the list or at the high end of a selection. A
+// selection whose items are all deleted is cleared.
 func (m *Model) DeleteWhere(match func(ListItem) bool) {
 	d := slices.IndexFunc(m.items, match)
 	if d < 0 {

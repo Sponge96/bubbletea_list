@@ -34,9 +34,8 @@ func blend(c color.Color, f Fade) (r, g, b int) {
 	return mix(cr, bgR), mix(cg, bgG), mix(cb, bgB)
 }
 
-// Dim returns view with its foreground colors faded according to f. Fading is
-// truecolor foreground only (see Fade) and Amount is not clamped. If either
-// f.Foreground or f.Background is nil, Dim returns view unchanged.
+// Dim returns view with its foreground colors faded according to f. See Fade
+// for what is and isn't faded.
 func Dim(view string, f Fade) string {
 	if f.Foreground == nil || f.Background == nil {
 		return view
