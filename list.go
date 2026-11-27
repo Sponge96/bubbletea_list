@@ -23,10 +23,10 @@ type Model struct {
 	activeIndex    int
 	styles         Styles
 	selectionStart int
-	ScrollBar      bool
-	FillWidth      bool
-	Fade           *Fade
-	Paged          bool
+	scrollBar      bool
+	fillWidth      bool
+	fade           *Fade
+	paged          bool
 }
 
 type ListItem interface {
@@ -48,15 +48,27 @@ type Styles struct {
 	Indicator      lipgloss.Style
 }
 
-func New(items []ListItem, orientation Orientation, w, h int, s Styles) *Model {
+// Option configures a Model at construction. Options are applied in order, so
+// the last one for a setting wins.
+type Option func(*Model)
+
+func WithOrientation(o Orientation) Option { return func(m *Model) { m.orientation = o } }
+func WithStyles(s Styles) Option           { return func(m *Model) { m.SetStyles(s) } }
+func WithFade(f Fade) Option               { return func(m *Model) { m.SetFade(f) } }
+func WithScrollBar(on bool) Option         { return func(m *Model) { m.SetScrollBar(on) } }
+func WithFillWidth(on bool) Option         { return func(m *Model) { m.SetFillWidth(on) } }
+func WithPaged(on bool) Option             { return func(m *Model) { m.SetPaged(on) } }
+
+// New returns a list of items. It defaults to a vertical list with zero Styles,
+// no fade and size 0x0; use SetSize to size it.
+func New(items []ListItem, opts ...Option) *Model {
 	m := &Model{
 		items:          slices.Clone(items),
-		orientation:    orientation,
-		width:          w,
-		height:         h,
 		activeIndex:    -1,
 		selectionStart: -1,
-		styles:         s,
+	}
+	for _, opt := range opts {
+		opt(m)
 	}
 	for _, item := range m.items {
 		m.sizeItem(item)
@@ -155,7 +167,7 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 
 func (m *Model) View() string {
 	if len(m.items) == 0 {
-		if m.ScrollBar && m.orientation == Vertical {
+		if m.scrollBar && m.orientation == Vertical {
 			return lipgloss.JoinHorizontal(lipgloss.Left, m.emptyColumn(), m.verticalScrollView())
 		}
 		return ""
@@ -178,11 +190,11 @@ func (m *Model) emptyColumn() string {
 }
 
 func (m *Model) fill(style lipgloss.Style) lipgloss.Style {
-	if !m.FillWidth || m.orientation != Vertical || m.width <= 0 {
+	if !m.fillWidth || m.orientation != Vertical || m.width <= 0 {
 		return style
 	}
 	w := m.width
-	if m.ScrollBar {
+	if m.scrollBar {
 		w--
 	}
 	return style.Width(max(w, 1))
@@ -205,8 +217,8 @@ func (m *Model) renderItem(i int) string {
 		}
 	}
 	view := m.items[i].View()
-	if m.Fade != nil {
-		view = Dim(view, *m.Fade)
+	if m.fade != nil {
+		view = Dim(view, *m.fade)
 	}
 	return m.fill(m.styles.Item).Render(view)
 }
@@ -221,7 +233,7 @@ func (m *Model) renderSections(maxSize int, sizeFunc func(string) int) []string 
 	remainingSpace -= itemSize
 	sections = append(sections, item)
 
-	for i := m.activeIndex - 1; i >= 0 && !m.Paged; i-- {
+	for i := m.activeIndex - 1; i >= 0 && !m.paged; i-- {
 		item = m.renderItem(i)
 		itemSize := sizeFunc(item)
 		if itemSize <= remainingSpace {
@@ -232,7 +244,7 @@ func (m *Model) renderSections(maxSize int, sizeFunc func(string) int) []string 
 		}
 	}
 
-	for i := m.activeIndex + 1; i < len(m.items) && !m.Paged; i++ {
+	for i := m.activeIndex + 1; i < len(m.items) && !m.paged; i++ {
 		item = m.renderItem(i)
 		itemSize := sizeFunc(item)
 		if itemSize <= remainingSpace {
@@ -253,7 +265,7 @@ func (m *Model) renderVerticalSections() []string {
 func (m *Model) verticalView() string {
 	sections := m.renderVerticalSections()
 	mainView := lipgloss.JoinVertical(lipgloss.Left, sections...)
-	if m.ScrollBar {
+	if m.scrollBar {
 		return lipgloss.JoinHorizontal(lipgloss.Left, mainView, m.verticalScrollView())
 	}
 	return mainView
@@ -266,12 +278,12 @@ func (m *Model) renderHorizontalSections() []string {
 func (m *Model) horizontalView() string {
 	sections := m.renderHorizontalSections()
 	mainView := lipgloss.JoinHorizontal(lipgloss.Left, sections...)
-	if m.Paged {
+	if m.paged {
 		mainView = lipgloss.NewStyle().Height(lipgloss.Height(m.renderActiveItem())).Render(mainView)
 	} else {
 		mainView = lipgloss.NewStyle().Height(m.tallestItemHeight()).Render(mainView)
 	}
-	if m.ScrollBar {
+	if m.scrollBar {
 		dots := lipgloss.PlaceHorizontal(lipgloss.Width(mainView), lipgloss.Center, m.horizontalScrollView())
 		return lipgloss.JoinVertical(lipgloss.Left, mainView, dots)
 	}
@@ -455,6 +467,32 @@ func (m *Model) ActiveIndex() int {
 
 func (m *Model) Orientation() Orientation {
 	return m.orientation
+}
+
+func (m *Model) SetScrollBar(on bool) { m.scrollBar = on }
+func (m *Model) ScrollBar() bool      { return m.scrollBar }
+
+func (m *Model) SetFillWidth(on bool) { m.fillWidth = on }
+func (m *Model) FillWidth() bool      { return m.fillWidth }
+
+func (m *Model) SetPaged(on bool) { m.paged = on }
+func (m *Model) Paged() bool      { return m.paged }
+
+func (m *Model) SetStyles(s Styles) { m.styles = s }
+func (m *Model) Styles() Styles     { return m.styles }
+
+// SetFade makes inactive items fade according to f. The list keeps its own copy.
+func (m *Model) SetFade(f Fade) { m.fade = &f }
+
+// ClearFade turns fading off.
+func (m *Model) ClearFade() { m.fade = nil }
+
+// Fade returns the list's fade and whether fading is on.
+func (m *Model) Fade() (Fade, bool) {
+	if m.fade == nil {
+		return Fade{}, false
+	}
+	return *m.fade, true
 }
 
 func (m *Model) hasValidActiveIndex() bool {
